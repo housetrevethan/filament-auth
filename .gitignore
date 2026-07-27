@@ -1,0 +1,35 @@
+# Dependencies
+/vendor/
+/node_modules/
+
+# IDE & Editor
+/.idea/
+/.vscode/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+
+# Testing & Coverage
+/.phpunit.cache/
+/coverage/
+.pest/
+
+# Laravel / Environment
+.env
+.env.*
+!.env.example
+
+# Build artifacts
+/public/build/
+/public/hot/
+
+# Composer
+composer.phar
+auth.json
+
+# Logs
+*.log
+/storage/logs/
+
+# OS
+Thumbs.db

@@ -1,0 +1,42 @@
+{
+    "name": "housetrevethan/filament-auth",
+    "description": "Base authentication system for House Trevethan Filament applications",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.4",
+        "filament/filament": "^5.0",
+        "laravel/framework": "^12.0",
+        "laravel/socialite": "^5.0"
+    },
+    "require-dev": {
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin-laravel": "^4.0",
+        "orchestra/testbench": "^10.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Housetrevethan\\FilamentAuth\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Housetrevethan\\FilamentAuth\\Tests\\": "tests/",
+            "Database\\Factories\\": "src/Database/Factories/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Housetrevethan\\FilamentAuth\\FilamentAuthServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}
