@@ -112,7 +112,7 @@ class InstallCommand extends Command
         $this->line('  <comment>])</comment>');
         $this->newLine();
         $this->info('→ Add to your .env:');
-        $this->line('  MICROSOFT_OUR_TENANT_ID=<your-ht-tenant-uuid>');
+        $this->line('  HOUSE_TREVETHAN_TENANT_ID=<your-ht-tenant-uuid>');
         $this->line('  MICROSOFT_ALLOWED_TENANT_IDS=<client-uuid-1>,<client-uuid-2>');
         $this->line('  MICROSOFT_CLIENT_ID=<azure-app-client-id>');
         $this->line('  MICROSOFT_CLIENT_SECRET=<azure-app-client-secret>');

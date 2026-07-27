@@ -2,7 +2,6 @@
 
 namespace Housetrevethan\FilamentAuth\Models;
 
-use Housetrevethan\FilamentAuth\Database\Factories\UserFactory;
 use Housetrevethan\FilamentAuth\Enums\UserRole;
 use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthenticationRecovery;
 use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
@@ -13,7 +12,6 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasAvatar;
 use Filament\Panel;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
@@ -26,8 +24,7 @@ class User extends Authenticatable implements
     HasEmailAuthentication,
     MustVerifyEmail
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use Notifiable;
 
     use InteractsWithAppAuthenticationRecovery;
     use InteractsWithEmailAuthentication;
@@ -115,10 +112,5 @@ class User extends Authenticatable implements
         }
 
         return Storage::disk('public')->url($this->avatar);
-    }
-
-    protected static function newFactory(): UserFactory
-    {
-        return UserFactory::new();
     }
 }

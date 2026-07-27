@@ -14,7 +14,7 @@ use Laravel\Socialite\Contracts\User as SocialiteUser;
 
 class MicrosoftLoginService implements OAuthLoginServiceContract
 {
-    private string $ourTenantId;
+    private string $houseTrevethanTenantId;
 
     /** @var array<string> */
     private array $allowedTenantIds;
@@ -33,7 +33,7 @@ class MicrosoftLoginService implements OAuthLoginServiceContract
 
     public function __construct(private readonly SocialiteUser $socialiteUser)
     {
-        $this->ourTenantId      = config('filament-auth.microsoft.house_trevethan_tenant_id', '');
+        $this->houseTrevethanTenantId = config('filament-auth.microsoft.house_trevethan_tenant_id', '');
         $this->allowedTenantIds = config('filament-auth.microsoft.allowed_tenant_ids', []);
 
         $this->email           = $this->socialiteUser->getEmail();
@@ -85,13 +85,13 @@ class MicrosoftLoginService implements OAuthLoginServiceContract
             return false;
         }
 
-        return $this->tenantId === $this->ourTenantId
+        return $this->tenantId === $this->houseTrevethanTenantId
             || in_array($this->tenantId, $this->allowedTenantIds);
     }
 
     private function assignRole(): UserRole
     {
-        return $this->tenantId === $this->ourTenantId
+        return $this->tenantId === $this->houseTrevethanTenantId
             ? UserRole::Core
             : UserRole::Client;
     }
