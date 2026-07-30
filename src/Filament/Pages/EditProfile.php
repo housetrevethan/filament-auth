@@ -5,6 +5,7 @@ namespace Housetrevethan\FilamentAuth\Filament\Pages;
 use Filament\Auth\Pages\EditProfile as BaseEditProfile;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\FileUpload;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;
 
@@ -29,6 +30,15 @@ class EditProfile extends BaseEditProfile
 
     public function form(Schema $schema): Schema
     {
+        if ($this->isOAuthUser()) {
+            return $schema->components([
+                TextEntry::make('microsoft_notice')
+                    ->label('Account Management')
+                    ->state('Your account profile is managed by Microsoft. <a href="https://myaccount.microsoft.com/" target="_blank" class="text-primary-600 hover:underline font-medium">Click here to manage your Microsoft account</a>.')
+                    ->html(),
+            ]);
+        }
+
         return parent::form($schema)->components([
             $this->getAvatarFormComponent(),
             $this->getNameFormComponent(),

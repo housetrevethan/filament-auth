@@ -4,142 +4,98 @@ namespace Housetrevethan\FilamentAuth\Services;
 
 use Housetrevethan\FilamentAuth\Contracts\OAuthLoginServiceContract;
 use Housetrevethan\FilamentAuth\Enums\UserRole;
-use Filament\Notifications\Notification;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use Laravel\Socialite\Contracts\User as SocialiteUser;
+use App\Models\User as SystemUser;
+use Laravel\Socialite\Contracts\User;
 
-class MicrosoftLoginService implements OAuthLoginServiceContract
+class MicrosoftLoginService
 {
-    private string $houseTrevethanTenantId;
+    public string $microsoftUserEmail;
 
-    /** @var array<string> */
-    private array $allowedTenantIds;
+    public string $microsoftUserName;
 
-    private string $email;
+    public ?string $microsoftAvatarUrl;
 
-    private string $name;
+    public ?string $microsoftTenantId;
 
-    private ?string $avatarUrl;
+    public string $microsoftUserId;
 
-    private ?string $tenantId;
+    public ?string $microsoftUserToken;
 
-    private string $microsoftUserId;
-
-    private ?string $token;
-
-    public function __construct(private readonly SocialiteUser $socialiteUser)
+    public function __construct(public User $microsoftUser)
     {
-        $this->houseTrevethanTenantId = config('filament-auth.microsoft.house_trevethan_tenant_id', '');
-        $this->allowedTenantIds = config('filament-auth.microsoft.allowed_tenant_ids', []);
-
-        $this->email           = $this->socialiteUser->getEmail();
-        $this->name            = $this->socialiteUser->getName();
-        $this->avatarUrl       = $this->socialiteUser->getAvatar();
-        $this->microsoftUserId = $this->socialiteUser->getId();
-        $this->token           = $this->socialiteUser->token;
-        $this->tenantId        = $this->socialiteUser->tenant['id'] ?? null;
+        $this->microsoftUserEmail = $this->microsoftUser->getEmail();
+        $this->microsoftUserName = $this->microsoftUser->getName();
+        $this->microsoftAvatarUrl = $this->microsoftUser->getAvatar();
+        $this->microsoftUserId = $this->microsoftUser->getId();
+        $this->microsoftUserToken = $this->microsoftUser->token;
+        $this->microsoftTenantId = $this->microsoftUser->tenant['id'] ?? null;
     }
 
-    public function handle(): RedirectResponse
+    public function validTenantId(): bool
     {
-        Log::info("Microsoft OAuth attempt for {$this->email} from tenant {$this->tenantId}");
+        Log::info("Tenant ID: $this->microsoftTenantId");
 
-        if (! $this->isAllowedTenant()) {
-            Log::warning("Rejected OAuth attempt — tenant not in allow list: {$this->tenantId}");
-
-            return redirect(route('about'));
-        }
-
-        $user = $this->provisionUser();
-
-        if ($user === null) {
-            Log::info("Rejected OAuth — local account already exists for {$this->email}");
-
-            Notification::make()
-                ->title('Welcome Back! It looks like you already have an account.')
-                ->warning()
-                ->body('This email is already registered in the system. Please login with your password.')
-                ->send();
-
-            return redirect(route('filament.dashboard.auth.login'));
-        }
-
-        Auth::login($user);
-
-        Notification::make()
-            ->title('Welcome from the House Trevethan Team!')
-            ->success()
-            ->body('Enjoy your new system and feel free to reach out if you have any questions!')
-            ->send();
-
-        return redirect(route('filament.dashboard.pages.dashboard'));
+        return in_array($this->microsoftTenantId, config('filament-auth.microsoft.allowed_tenant_ids'));
     }
 
-    private function isAllowedTenant(): bool
+    public function getUserRole(): UserRole
     {
-        if ($this->tenantId === null) {
-            return false;
+        if ($this->microsoftTenantId === config('filament-auth.microsoft.house_trevethan_tenant_id'))
+        {
+            return UserRole::Admin;
+        }
+        elseif (in_array($this->microsoftTenantId, config('filament-auth.microsoft.allowed_tenant_ids')))
+        {
+            return UserRole::Core;
         }
 
-        return $this->tenantId === $this->houseTrevethanTenantId
-            || in_array($this->tenantId, $this->allowedTenantIds);
+        return UserRole::Client;
     }
 
-    private function assignRole(): UserRole
+    public function getSystemUser(): ?SystemUser
     {
-        return $this->tenantId === $this->houseTrevethanTenantId
-            ? UserRole::Core
-            : UserRole::Client;
-    }
+        $systemUser = SystemUser::where('email', $this->microsoftUserEmail)->first();
+        // Brand new user
+        if ($systemUser === null) {
+            Log::info("User does not exist. Creating the user with email: $this->microsoftUserEmail");
 
-    /**
-     * Creates a new user or updates an existing OAuth user.
-     * Returns null when the email belongs to a local (non-OAuth) account.
-     */
-    private function provisionUser(): ?\Housetrevethan\FilamentAuth\Models\User
-    {
-        $userModel = config('filament-auth.user_model', \Housetrevethan\FilamentAuth\Models\User::class);
-        $existing  = $userModel::where('email', $this->email)->first();
-
-        // Brand new user — create and assign role based on tenant
-        if ($existing === null) {
-            Log::info("Provisioning new OAuth user: {$this->email} as {$this->assignRole()->value}");
-
-            return $userModel::create([
-                'name'                    => $this->name,
-                'email'                   => $this->email,
-                'role'                    => $this->assignRole(),
-                'oauth_provider_name'     => 'microsoft',
-                'oauth_provider_id'       => $this->tenantId,
-                'oauth_provider_user_id'  => $this->microsoftUserId,
-                'email_verified_at'       => now(),
-                'remember_token'          => hash('sha256', $this->token ?? ''),
-                'password'                => Hash::make(Str::random(40)),
-                'avatar'                  => $this->avatarUrl,
-            ]);
-        }
-
-        // Returning OAuth user — refresh profile
-        if ($existing->oauth_provider_user_id !== null) {
-            Log::info("Updating returning OAuth user: {$this->email}");
-
-            $existing->update([
-                'name'                   => $this->name,
-                'avatar'                 => $this->avatarUrl,
-                'oauth_provider_id'      => $this->tenantId,
+            return SystemUser::create([
+                'name' => $this->microsoftUserName,
+                'email' => $this->microsoftUserEmail,
+                'oauth_provider_id' => $this->microsoftTenantId,
+                'oauth_provider_name' => 'microsoft',
                 'oauth_provider_user_id' => $this->microsoftUserId,
-                'remember_token'         => hash('sha256', $this->token ?? ''),
-                'password'               => Hash::make(Str::random(40)),
+                'email_verified_at' => now(),
+                'remember_token' => hash('sha256', $this->microsoftUserToken),
+                'password' => Hash::make(Str::random(40)),
+                'role' => $this->getUserRole(),
+                'avatar' => $this->microsoftAvatarUrl,
             ]);
-
-            return $existing;
         }
 
-        // Email exists as a local account — reject SSO
+        // The user has an OAuth provider from a previous login
+        if ($systemUser->oauth_provider_user_id !== null) {
+            Log::info("User has a previous login, updating profile for $this->microsoftUserEmail");
+            $systemUser->update([
+                'name' => $this->microsoftUserName,
+                'remember_token' => hash('sha256', $this->microsoftUserToken),
+                'oauth_provider_id' => $this->microsoftTenantId,
+                'oauth_provider_user_id' => $this->microsoftUserId,
+                'avatar' => $this->microsoftAvatarUrl,
+                'password' => Hash::make(Str::random(40)),
+            ]);
+
+            return $systemUser;
+        }
+
+        // If the user doesn't have an OAuth provider, they have
+        // a system account. We return null here and reject the login
+        // to avoid a database error
+        Log::info("User already has a local account: $this->microsoftUserEmail");
+
         return null;
     }
 }

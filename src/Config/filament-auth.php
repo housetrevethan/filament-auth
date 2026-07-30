@@ -12,10 +12,17 @@ return [
     |                      comma-separated list.
     */
     'microsoft' => [
-        'house_trevethan_tenant_id'      => env('HOUSE_TREVETHAN_TENANT_ID', ''),
+        'house_trevethan_tenant_id' => env('HOUSE_TREVETHAN_TENANT_ID', ''),
         'allowed_tenant_ids' => array_filter(
             explode(',', env('MICROSOFT_ALLOWED_TENANT_IDS', ''))
         ),
+        'client_id' => env('MICROSOFT_CLIENT_ID'),
+        'client_secret' => env('MICROSOFT_CLIENT_SECRET'),
+        'redirect' => env('MICROSOFT_REDIRECT_URI'),
+        'tenant' => 'common',
+        'include_tenant_info' => true,
+        'include_avatar' => true,
+        'include_avatar_size' => '648x648',
     ],
 
     /*
@@ -24,9 +31,9 @@ return [
     |--------------------------------------------------------------------------
     */
     'mfa' => [
-        'app_enabled'           => env('MFA_APP_ENABLED', true),
-        'email_enabled'         => env('MFA_EMAIL_ENABLED', true),
-        'recovery_code_count'   => env('MFA_RECOVERY_CODE_COUNT', 8),
-        'code_expiry_minutes'   => env('MFA_CODE_EXPIRY_MINUTES', 5),
+        'app_enabled' => env('MFA_APP_ENABLED', true),
+        'email_enabled' => env('MFA_EMAIL_ENABLED', true),
+        'recovery_code_count' => env('MFA_RECOVERY_CODE_COUNT', 8),
+        'code_expiry_minutes' => env('MFA_CODE_EXPIRY_MINUTES', 5),
     ],
 ];

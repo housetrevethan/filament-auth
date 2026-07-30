@@ -98,6 +98,29 @@ Important:
 
 - Use `HOUSE_TREVETHAN_TENANT_ID` for the House Trevethan tenant UUID.
 
+## Microsoft Socialite Provider
+
+Install the Microsoft Socialite provider:
+
+```bash
+composer require socialiteproviders/microsoft
+```
+
+Register the driver in your `AppServiceProvider`:
+
+```php
+use Illuminate\Support\Facades\Event;
+use SocialiteProviders\Manager\SocialiteWasCalled;
+use SocialiteProviders\Microsoft\Provider;
+
+public function boot(): void
+{
+    Event::listen(function (SocialiteWasCalled $event) {
+        $event->extendSocialite('microsoft', Provider::class);
+    });
+}
+```
+
 ## services.php Setup (Microsoft OAuth)
 
 Ensure your consuming app has a Microsoft Socialite provider config in `config/services.php`:
@@ -107,10 +130,12 @@ Ensure your consuming app has a Microsoft Socialite provider config in `config/s
     'client_id' => env('MICROSOFT_CLIENT_ID'),
     'client_secret' => env('MICROSOFT_CLIENT_SECRET'),
     'redirect' => env('MICROSOFT_REDIRECT_URI'),
+    'tenant' => 'common',
+    'include_tenant_info' => true,
+    'include_avatar' => true,
+    'include_avatar_size' => '648x648',
 ],
 ```
-
-If your app does not already have a Microsoft Socialite driver installed, add one compatible with your Laravel/Socialite version.
 
 ## Basic Usage
 
