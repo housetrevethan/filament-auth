@@ -1,6 +1,5 @@
 {
     "name": "housetrevethan/filament-auth",
-    "version": "v1.0.4",
     "description": "Base authentication system for House Trevethan Filament applications",
     "type": "library",
     "license": "proprietary",
