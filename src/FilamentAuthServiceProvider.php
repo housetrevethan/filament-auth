@@ -62,7 +62,9 @@ class FilamentAuthServiceProvider extends ServiceProvider
 
     private function registerRoutes(): void
     {
-        $this->loadRoutesFrom(__DIR__ . '/../routes/microsoft.php');
+        Route::middleware('web')->group(function () {
+            $this->loadRoutesFrom(__DIR__ . '/../routes/microsoft.php');
+        });
     }
 
     private function registerPolicies(): void
