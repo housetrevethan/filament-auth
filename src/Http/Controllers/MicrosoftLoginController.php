@@ -27,7 +27,7 @@ class MicrosoftLoginController extends Controller
         );
         // If the user has no tenant ID or the tenant ID is not allowed, deny login
         if (! $microsoftLoginService->validTenantId()) {
-            return redirect(route('about'));
+            return redirect(route(config('filament-auth.filament-routes.failed-login-redirect')));
         } else {
             $systemUser = $microsoftLoginService->getSystemUser();
             if ($systemUser !== null) {
@@ -38,7 +38,7 @@ class MicrosoftLoginController extends Controller
                     ->body('Enjoy your new system and feel free to reach out if you have any questions!')
                     ->send();
 
-                return redirect(route('filament.admin.pages.dashboard'));
+                return redirect(route(config('filament-auth.filament-routes.filament-dashboard-route')));
             }
 
             Auth::logout();
@@ -51,7 +51,7 @@ class MicrosoftLoginController extends Controller
                 ->body('This email is already registered in the system. Please login with your password.')
                 ->send();
 
-            return redirect(route('filament.admin.auth.login'));
+            return redirect(route(config('filament-auth.filament-routes.filament-login-route')));
         }
 
     }

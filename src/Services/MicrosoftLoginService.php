@@ -7,7 +7,7 @@ use Housetrevethan\FilamentAuth\Enums\UserRole;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use App\Models\User as SystemUser;
+use HouseTrevethan\FilamentAuth\Models\User as SystemUser;
 use Laravel\Socialite\Contracts\User;
 
 class MicrosoftLoginService
@@ -43,11 +43,11 @@ class MicrosoftLoginService
     {
         if ($this->microsoftTenantId === config('filament-auth.microsoft.house_trevethan_tenant_id'))
         {
-            return UserRole::Admin;
+            return UserRole::HouseTrevethanStaff;
         }
         elseif (in_array($this->microsoftTenantId, config('filament-auth.microsoft.allowed_tenant_ids')))
         {
-            return UserRole::Core;
+            return UserRole::Admin;
         }
 
         return UserRole::Client;

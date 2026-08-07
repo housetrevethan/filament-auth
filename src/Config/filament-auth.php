@@ -25,6 +25,12 @@ return [
         'include_avatar_size' => '648x648',
     ],
 
+    'filament-routes' => [
+        'filament-dashboard-route' => env('FILAMENT_DASHBOARD_ROUTE'),
+        'filament-login-route' => env('FILAMENT_LOGIN_ROUTE'),
+        'failed-login-redirect' => env('FAILED_LOGIN_REDIRECT'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Multi-Factor Authentication
