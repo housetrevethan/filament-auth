@@ -16,6 +16,16 @@ class FilamentAuthServiceProvider extends ServiceProvider
             __DIR__ . '/Config/filament-auth.php',
             'filament-auth'
         );
+
+        // Push required Socialite settings into services.microsoft so clients
+        // don't need to set them manually — without these, Socialite won't
+        // return tenant info or avatars.
+        config([
+            'services.microsoft.tenant'               => 'common',
+            'services.microsoft.include_tenant_info'  => true,
+            'services.microsoft.include_avatar'       => true,
+            'services.microsoft.include_avatar_size'  => '648x648',
+        ]);
     }
 
     public function boot(): void

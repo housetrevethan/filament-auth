@@ -92,11 +92,16 @@ MICROSOFT_ALLOWED_TENANT_IDS=<client-tenant-uuid-1>,<client-tenant-uuid-2>
 MICROSOFT_CLIENT_ID=<azure-app-client-id>
 MICROSOFT_CLIENT_SECRET=<azure-app-client-secret>
 MICROSOFT_REDIRECT_URI=${APP_URL}/auth/microsoft/callback
+
+FILAMENT_DASHBOARD_ROUTE=<your-filament-dashboard-route-name>
+FILAMENT_LOGIN_ROUTE=<your-filament-login-route-name>
+FAILED_LOGIN_REDIRECT=<route-name-for-denied-logins>
 ```
 
 Important:
 
 - Use `HOUSE_TREVETHAN_TENANT_ID` for the House Trevethan tenant UUID.
+- `FILAMENT_DASHBOARD_ROUTE`, `FILAMENT_LOGIN_ROUTE`, and `FAILED_LOGIN_REDIRECT` must be valid named routes in your app. The OAuth controller uses these to redirect after login success, local-account conflict, and denied tenant, respectively.
 
 ## Microsoft Socialite Provider
 
@@ -123,17 +128,13 @@ public function boot(): void
 
 ## services.php Setup (Microsoft OAuth)
 
-Ensure your consuming app has a Microsoft Socialite provider config in `config/services.php`:
+Ensure your consuming app has a Microsoft Socialite provider config in `config/services.php` with **only** the three client-specific values. The package automatically sets `tenant`, `include_tenant_info`, `include_avatar`, and `include_avatar_size` at boot — do not override them:
 
 ```php
 'microsoft' => [
-    'client_id' => env('MICROSOFT_CLIENT_ID'),
+    'client_id'     => env('MICROSOFT_CLIENT_ID'),
     'client_secret' => env('MICROSOFT_CLIENT_SECRET'),
-    'redirect' => env('MICROSOFT_REDIRECT_URI'),
-    'tenant' => 'common',
-    'include_tenant_info' => true,
-    'include_avatar' => true,
-    'include_avatar_size' => '648x648',
+    'redirect'      => env('MICROSOFT_REDIRECT_URI'),
 ],
 ```
 
