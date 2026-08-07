@@ -36,8 +36,6 @@ class MicrosoftLoginService
 
     public function validTenantId(): bool
     {
-        Log::info("Tenant ID: $this->microsoftTenantId");
-
         return in_array($this->microsoftTenantId, config('filament-auth.microsoft.allowed_tenant_ids'));
     }
 

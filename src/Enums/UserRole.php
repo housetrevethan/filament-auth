@@ -7,15 +7,13 @@ use Filament\Support\Contracts\HasLabel;
 enum UserRole: string implements HasLabel
 {
     case Admin = 'admin';
-    case Core = 'core';
-    case Client = 'client';
+    case HouseTrevethanStaff = "house_trevethan_staff";
 
     public function getLabel(): string
     {
         return match ($this) {
             self::Admin  => 'Admin',
-            self::Core   => 'Core',
-            self::Client => 'Client',
+            self::HouseTrevethanStaff => 'House Trevethan Staff',
         };
     }
 }
