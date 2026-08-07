@@ -82,14 +82,26 @@ class FilamentAuthPlugin implements Plugin
             fn (): HtmlString => new HtmlString(
                 '<div style="text-align:center; margin-top: 1rem;">
                     <a href="' . route('auth.microsoft.redirect') . '"
-                       style="display:inline-flex; align-items:center; gap:0.5rem; padding:0.5rem 1rem;
-                              border:1px solid #d1d5db; border-radius:0.375rem; font-size:0.875rem;
-                              text-decoration:none; color:inherit;">
-                        Sign in with Microsoft
+                       style="display:inline-flex; align-items:center; gap:0; padding:0;
+                              border:1px solid #8c8c8c; border-radius:0; font-size:0.875rem;
+                              text-decoration:none; color:#5e5e5e; background:#fff;
+                              font-family: Segoe UI, sans-serif;">
+                        <span style="display:flex; align-items:center; justify-content:center;
+                                     width:41px; height:41px; background:#fff; flex-shrink:0;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 21 21">
+                                <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                                <rect x="11" y="1" width="9" height="9" fill="#00a4ef"/>
+                                <rect x="1" y="11" width="9" height="9" fill="#7fba00"/>
+                                <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+                            </svg>
+                        </span>
+                        <span style="padding: 0 12px; font-weight:600; font-size:13px; white-space:nowrap;">
+                            Sign in with Microsoft
+                        </span>
                     </a>
                 </div>'
             ),
-            scopes: $panel->getId(),
+            scopes: \Filament\Auth\Pages\Login::class,
         );
     }
 
