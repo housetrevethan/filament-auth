@@ -1,6 +1,6 @@
 <?php
 
-use Housetrevethan\FilamentAuth\Http\Controllers\MicrosoftAuthController;
+use Housetrevethan\FilamentAuth\Http\Controllers\MicrosoftLoginController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('auth/microsoft/redirect', [MicrosoftLoginController::class, 'redirect'])
