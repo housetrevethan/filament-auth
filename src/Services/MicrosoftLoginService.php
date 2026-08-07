@@ -2,12 +2,11 @@
 
 namespace Housetrevethan\FilamentAuth\Services;
 
-use Housetrevethan\FilamentAuth\Contracts\OAuthLoginServiceContract;
 use Housetrevethan\FilamentAuth\Enums\UserRole;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use HouseTrevethan\FilamentAuth\Models\User as SystemUser;
+use Housetrevethan\FilamentAuth\Models\User as SystemUser;
 use Laravel\Socialite\Contracts\User;
 
 class MicrosoftLoginService
