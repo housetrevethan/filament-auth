@@ -38,16 +38,16 @@ class FilamentAuthServiceProvider extends ServiceProvider
             __DIR__ . '/Config/filament-auth.php' => config_path('filament-auth.php'),
         ], 'filament-auth-config');
 
-        // Full users table migration — publish-only, not auto-loaded
+        // Migrations are published with dynamic timestamps via the install command.
+        // These publish tags remain for manual/advanced use only.
         $this->publishes([
-            __DIR__ . '/Database/Migrations/2020_01_01_000000_create_users_table.php'
-                => database_path('migrations/2020_01_01_000000_create_users_table.php'),
+            __DIR__ . '/Database/Migrations/create_users_table.php'
+                => database_path('migrations/' . now()->format('Y_m_d_His') . '_create_users_table.php'),
         ], 'filament-auth-migrations-create');
 
-        // Additive OAuth migration — also publishable if apps want to customise
         $this->publishes([
-            __DIR__ . '/Database/Migrations/2020_01_01_000001_add_oauth_columns_to_users.php'
-                => database_path('migrations/2020_01_01_000001_add_oauth_columns_to_users.php'),
+            __DIR__ . '/Database/Migrations/auto/add_oauth_columns_to_users.php'
+                => database_path('migrations/' . now()->addSecond()->format('Y_m_d_His') . '_add_oauth_columns_to_users.php'),
         ], 'filament-auth-migrations');
     }
 
@@ -56,7 +56,7 @@ class FilamentAuthServiceProvider extends ServiceProvider
         // Only the additive OAuth migration is auto-loaded.
         // The create_users_table migration is publish-only (via install command).
         $this->loadMigrationsFrom(
-            __DIR__ . '/Database/Migrations/2020_01_01_000001_add_oauth_columns_to_users.php'
+            __DIR__ . '/Database/Migrations/auto'
         );
     }
 

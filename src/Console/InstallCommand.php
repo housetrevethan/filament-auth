@@ -41,42 +41,64 @@ class InstallCommand extends Command
 
     private function publishMigrations(): void
     {
-        $this->info('→ Checking database state...');
+        $this->info('→ Checking migration state...');
 
-        if (Schema::hasTable('users')) {
-            $this->line('  Existing <comment>users</comment> table detected.');
+        $existingCreateMigration = $this->findExistingMigration('create_users_table');
+        $now = now();
+
+        if ($existingCreateMigration) {
+            $this->line("  Existing <comment>create_users_table</comment> migration detected (<comment>{$existingCreateMigration}</comment>).");
             $this->line('  Publishing additive OAuth migration only...');
-
-            $this->callSilently('vendor:publish', [
-                '--tag'   => 'filament-auth-migrations',
-                '--force' => false,
-            ]);
-
-            $this->line('  Migration published: <comment>add_oauth_columns_to_users</comment>');
-            $this->newLine();
-            $this->warn('  ⚠  Verify your existing users table has these columns:');
-            $this->line('     - avatar (text, nullable)');
-            $this->line('     - role (string, default: "core")');
-            $this->line('     - app_authentication_secret (text, nullable)');
-            $this->line('     - app_authentication_recovery_codes (text, nullable)');
-            $this->line('     - has_email_authentication (boolean, default: false)');
-            $this->line('     If any are missing, add them manually before running migrate.');
+        } elseif (Schema::hasTable('users')) {
+            $this->line('  Existing <comment>users</comment> table detected (no migration file found).');
+            $this->line('  Publishing additive OAuth migration only...');
         } else {
-            $this->line('  No <comment>users</comment> table found.');
-            $this->line('  Publishing full users table migration...');
-
-            $this->callSilently('vendor:publish', [
-                '--tag'   => 'filament-auth-migrations-create',
-                '--force' => false,
-            ]);
-
-            $this->callSilently('vendor:publish', [
-                '--tag'   => 'filament-auth-migrations',
-                '--force' => false,
-            ]);
-
-            $this->line('  Migrations published. Run <comment>php artisan migrate</comment> to apply.');
+            $this->line('  No <comment>create_users_table</comment> migration found — publishing full users table migration...');
+            $this->publishMigrationFile(
+                'create_users_table',
+                $now->format('Y_m_d_His') . '_create_users_table.php'
+            );
+            // Ensure OAuth migration runs after create by bumping the timestamp 1 second
+            $now->addSecond();
         }
+
+        if (! $this->findExistingMigration('add_oauth_columns_to_users')) {
+            $this->publishMigrationFile(
+                'add_oauth_columns_to_users',
+                $now->format('Y_m_d_His') . '_add_oauth_columns_to_users.php'
+            );
+            $this->line('  Migration published: <comment>add_oauth_columns_to_users</comment>');
+        } else {
+            $this->line('  OAuth migration already exists, skipping.');
+        }
+
+        $this->newLine();
+        $this->warn('  ⚠  Verify your users table migration includes these columns:');
+        $this->line('     - avatar (text, nullable)');
+        $this->line('     - role (string, default: "core")');
+        $this->line('     - app_authentication_secret (text, nullable)');
+        $this->line('     - app_authentication_recovery_codes (text, nullable)');
+        $this->line('     - has_email_authentication (boolean, default: false)');
+        $this->line('     If any are missing, add them before running <comment>php artisan migrate</comment>.');
+    }
+
+    private function publishMigrationFile(string $stub, string $destinationFilename): void
+    {
+        $source = __DIR__ . "/../Database/Migrations/{$stub}.php";
+        $destination = database_path("migrations/{$destinationFilename}");
+
+        if (! file_exists($destination)) {
+            copy($source, $destination);
+        }
+    }
+
+    private function findExistingMigration(string $name): ?string
+    {
+        foreach (glob(database_path("migrations/*_{$name}.php")) as $file) {
+            return basename($file);
+        }
+
+        return null;
     }
 
     private function printModelChecklist(): void
