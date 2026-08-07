@@ -71,7 +71,7 @@ class User extends Authenticatable implements
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return in_array($this->role, [UserRole::Admin, UserRole::Core, UserRole::Client]);
+        return in_array($this->role, [UserRole::Admin, UserRole::HouseTrevethanStaff]);
     }
 
     public function getAppAuthenticationSecret(): ?string

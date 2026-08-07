@@ -3,9 +3,9 @@
 namespace Housetrevethan\FilamentAuth;
 
 use Housetrevethan\FilamentAuth\Console\InstallCommand;
-use Housetrevethan\FilamentAuth\Models\User;
 use Housetrevethan\FilamentAuth\Policies\UserPolicy;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class FilamentAuthServiceProvider extends ServiceProvider
@@ -59,7 +59,6 @@ class FilamentAuthServiceProvider extends ServiceProvider
             __DIR__ . '/Database/Migrations/auto'
         );
     }
-
     private function registerRoutes(): void
     {
         Route::middleware('web')->group(function () {
