@@ -47,7 +47,7 @@ class MicrosoftLoginService
     {
         if ($this->microsoftTenantId === config('filament-auth.microsoft.house_trevethan_tenant_id'))
         {
-            Log::info("$this->microsoftUserEmail is assigned the following user role: ${UserRole::HousetrevethanStaff->value}");
+            Log::info("$this->microsoftUserEmail is assigned the following user role: ${UserRole::HouseTrevethanStaff->value}");
             return UserRole::HouseTrevethanStaff;
         }
         elseif (in_array($this->microsoftTenantId, config('filament-auth.microsoft.allowed_tenant_ids')))
