@@ -41,6 +41,7 @@ class MicrosoftLoginController extends Controller
                 return redirect(route(config('filament-auth.filament-routes.filament-dashboard-route')));
             }
 
+            Log::info("User ($systemUser->email has a local account");
             Auth::logout();
             request()->session()->invalidate();
             request()->session()->regenerateToken();

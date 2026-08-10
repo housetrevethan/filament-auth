@@ -35,20 +35,28 @@ class MicrosoftLoginService
 
     public function validTenantId(): bool
     {
-        return in_array($this->microsoftTenantId, config('filament-auth.microsoft.allowed_tenant_ids'));
+        if (in_array($this->microsoftTenantId, config('filament-auth.microsoft.allowed_tenant_id')))
+        {
+            Log::info("Tenant ID confirmed for $this->microsoftUserEmail.");
+            return true;
+        }
+        return false;
     }
 
     public function getUserRole(): UserRole
     {
         if ($this->microsoftTenantId === config('filament-auth.microsoft.house_trevethan_tenant_id'))
         {
+            Log::info("$this->microsoftUserEmail is assigned the following user role: ${UserRole::HousetrevethanStaff->value}");
             return UserRole::HouseTrevethanStaff;
         }
         elseif (in_array($this->microsoftTenantId, config('filament-auth.microsoft.allowed_tenant_ids')))
         {
+            Log::info("$this->microsoftUserEmail is assigned the following user role: ${UserRole::Admin->value}");
             return UserRole::Admin;
         }
-
+        
+        Log::info("$this->microsoftUserEmail is assigned the following user role: ${UserRole::Client->value}");
         return UserRole::Client;
     }
 
@@ -81,6 +89,7 @@ class MicrosoftLoginService
                 'remember_token' => hash('sha256', $this->microsoftUserToken),
                 'oauth_provider_id' => $this->microsoftTenantId,
                 'oauth_provider_user_id' => $this->microsoftUserId,
+                'role' => $this->getUserRole(),
                 'avatar' => $this->microsoftAvatarUrl,
                 'password' => Hash::make(Str::random(40)),
             ]);
