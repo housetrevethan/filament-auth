@@ -34,17 +34,27 @@ class InstallCommand extends Command
     {
         $this->info('→ Publishing roles & permissions (spatie/laravel-permission)...');
 
-        $this->callSilently('vendor:publish', [
-            '--tag'   => 'laravel-permission-migrations',
-            '--force' => false,
+        // Published by provider rather than by tag: laravel-package-tools
+        // derives tag names from the package short name, so they are easy to
+        // get wrong and a bad tag publishes nothing without failing.
+        $this->call('vendor:publish', [
+            '--provider' => 'Spatie\Permission\PermissionServiceProvider',
         ]);
 
-        $this->callSilently('vendor:publish', [
-            '--tag'   => 'laravel-permission-config',
-            '--force' => false,
-        ]);
+        if (! $this->permissionMigrationExists()) {
+            $this->error('  Could not publish the permission tables migration.');
+            $this->line('  Publish it manually before migrating:');
+            $this->line('  <comment>php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"</comment>');
+
+            return;
+        }
 
         $this->line('  Permission tables migration and <comment>config/permission.php</comment> published.');
+    }
+
+    private function permissionMigrationExists(): bool
+    {
+        return $this->findExistingMigration('create_permission_tables') !== null;
     }
 
     private function publishConfig(): void

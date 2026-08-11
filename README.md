@@ -217,13 +217,17 @@ Permissions shipped by the package are listed in
 | `admin` | Panel access and full user management, except assigning protected roles |
 | `client` | None |
 
-Sync the code-defined defaults into the database after migrating:
+Publish the permission tables, migrate, then sync the code-defined defaults:
 
 ```bash
+php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"
 php artisan migrate
 php artisan filament-auth:sync-roles
 ```
 
+`filament-auth:install` performs the publish step for you. If the `roles` table
+is missing at runtime you will see `relation "roles" does not exist` — that
+means the publish or migrate step above has not run.
 The sync is additive by default, so permissions granted to a role at runtime
 survive a deploy. Use `--prune` to make the database match config exactly.
 
