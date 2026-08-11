@@ -78,13 +78,33 @@ class UserForm
                 Section::make('Access')
                     ->schema([
                         Select::make('role')
-                            ->options(UserRole::class)
+                            ->options(fn (): array => self::availableRoles())
                             ->default(UserRole::Client)
+                            ->disabled(fn ($record): bool => ! auth()->user()?->can('changeUserRole', $record ?? User::class))
+                            ->dehydrated(fn ($record): bool => (bool) auth()->user()?->can('changeUserRole', $record ?? User::class))
+                            ->helperText(fn ($record): ?string => auth()->user()?->can('changeUserRole', $record ?? User::class)
+                                ? null
+                                : 'Only House Trevethan staff can change this user\'s role.')
                             ->required(),
                         Toggle::make('has_email_authentication')
                             ->label('Email Two-Factor Authentication')
                             ->disabled(fn ($record) => $record !== null && $record->hasOAuthProvider()),
                     ]),
             ]);
+    }
+
+    /**
+     * Role options the acting user is permitted to assign.
+     *
+     * @return array<string, string>
+     */
+    protected static function availableRoles(): array
+    {
+        $actor = auth()->user();
+
+        return collect(UserRole::cases())
+            ->filter(fn (UserRole $role): bool => (bool) $actor?->can('assignUserRole', [User::class, $role]))
+            ->mapWithKeys(fn (UserRole $role): array => [$role->value => $role->getLabel()])
+            ->all();
     }
 }

@@ -12,12 +12,20 @@ return new class extends Migration
             $table->string('oauth_provider_name')->nullable()->after('remember_token');
             $table->string('oauth_provider_id')->nullable()->after('oauth_provider_name');
             $table->string('oauth_provider_user_id')->nullable()->after('oauth_provider_id');
+
+            // One account per provider identity. Prevents a second row from
+            // ever claiming an identity that is already linked.
+            $table->unique(
+                ['oauth_provider_name', 'oauth_provider_user_id'],
+                'users_oauth_identity_unique'
+            );
         });
     }
 
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
+            $table->dropUnique('users_oauth_identity_unique');
             $table->dropColumn(['oauth_provider_name', 'oauth_provider_id', 'oauth_provider_user_id']);
         });
     }

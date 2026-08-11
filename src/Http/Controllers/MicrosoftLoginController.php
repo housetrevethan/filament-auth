@@ -2,10 +2,10 @@
 
 namespace Housetrevethan\FilamentAuth\Http\Controllers;
 
+use Housetrevethan\FilamentAuth\Enums\OAuthRejectionReason;
 use Housetrevethan\FilamentAuth\Services\MicrosoftLoginService;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Routing\Controller;
 
@@ -29,33 +29,46 @@ class MicrosoftLoginController extends Controller
         // If the user has no tenant ID or the tenant ID is not allowed, deny login
         if (! $microsoftLoginService->validTenantId()) {
             return redirect(route(config('filament-auth.filament-routes.failed-login-redirect')));
-        } else {
-            $systemUser = $microsoftLoginService->getSystemUser();
-            if ($systemUser !== null) {
-                Auth::login($systemUser);
-                Notification::make()
-                    ->title('Welcome from the House Trevethan Team!')
-                    ->success()
-                    ->body('Enjoy your new system and feel free to reach out if you have any questions!')
-                    ->send();
-
-                return redirect(route(config('filament-auth.filament-routes.filament-dashboard-route')));
-            }
-
-            Log::info("User ($systemUser->email has a local account");
-            Auth::logout();
-            request()->session()->invalidate();
-            request()->session()->regenerateToken();
-
-            Notification::make()
-                ->title('Welcome Back! It looks like you already have an account.')
-                ->warning()
-                ->body('This email is already registered in the system. Please login with your password.')
-                ->send();
-
-            return redirect(route(config('filament-auth.filament-routes.filament-login-route')));
         }
 
+        $systemUser = $microsoftLoginService->getSystemUser();
+
+        if ($systemUser !== null) {
+            Auth::login($systemUser);
+            Notification::make()
+                ->title('Welcome from the House Trevethan Team!')
+                ->success()
+                ->body('Enjoy your new system and feel free to reach out if you have any questions!')
+                ->send();
+
+            return redirect(route(config('filament-auth.filament-routes.filament-dashboard-route')));
+        }
+
+        Auth::logout();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
+
+        $this->rejectionNotification($microsoftLoginService->rejectionReason)->send();
+
+        return redirect(route(config('filament-auth.filament-routes.filament-login-route')));
+    }
+
+    private function rejectionNotification(?OAuthRejectionReason $reason): Notification
+    {
+        return match ($reason) {
+            OAuthRejectionReason::LocalAccount => Notification::make()
+                ->title('Welcome Back! It looks like you already have an account.')
+                ->warning()
+                ->body('This email is already registered in the system. Please login with your password.'),
+            OAuthRejectionReason::EmailConflict, OAuthRejectionReason::TenantMismatch => Notification::make()
+                ->title('We could not sign you in.')
+                ->danger()
+                ->body('Your account could not be verified. Please contact your administrator for assistance.'),
+            default => Notification::make()
+                ->title('We could not sign you in.')
+                ->danger()
+                ->body('Please try again or contact your administrator for assistance.'),
+        };
     }
 }
 

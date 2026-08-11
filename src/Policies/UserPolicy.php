@@ -55,8 +55,26 @@ class UserPolicy
         return $user->role === UserRole::HouseTrevethanStaff || $user->role === UserRole::Admin;
     }
 
-    public function changeUserRole(User $user, User $model): bool
+    public function changeUserRole(User $user, ?User $model = null): bool
     {
-        return $user->role === UserRole::HouseTrevethanStaff || $user->role === UserRole::Admin;
+        if ($user->role === UserRole::HouseTrevethanStaff) {
+            return true;
+        }
+
+        if ($user->role !== UserRole::Admin) {
+            return false;
+        }
+
+        // Admins may manage roles, but never those of House Trevethan staff.
+        return $model === null || $model->role !== UserRole::HouseTrevethanStaff;
+    }
+
+    public function assignUserRole(User $user, UserRole $role): bool
+    {
+        if ($user->role === UserRole::HouseTrevethanStaff) {
+            return true;
+        }
+
+        return $user->role === UserRole::Admin && $role !== UserRole::HouseTrevethanStaff;
     }
 }
