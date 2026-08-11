@@ -63,16 +63,16 @@ class InstallCommand extends Command
             $now->addSecond();
         }
 
-        if (! $this->findExistingMigration('add_oauth_columns_to_users')) {
-            $this->publishMigrationFile(
-                'add_oauth_columns_to_users',
-                $now->format('Y_m_d_His') . '_add_oauth_columns_to_users.php',
-                true
-            );
-            $this->line('  Migration published: <comment>add_oauth_columns_to_users</comment>');
-        } else {
-            $this->line('  OAuth migration already exists, skipping.');
-        }
+//        if (! $this->findExistingMigration('add_oauth_columns_to_users')) {
+//            $this->publishMigrationFile(
+//                'add_oauth_columns_to_users',
+//                $now->format('Y_m_d_His') . '_add_oauth_columns_to_users.php',
+//                true
+//            );
+//            $this->line('  Migration published: <comment>add_oauth_columns_to_users</comment>');
+//        } else {
+//            $this->line('  OAuth migration already exists, skipping.');
+//        }
 
         $this->newLine();
         $this->warn('  ⚠  Verify your users table migration includes these columns:');

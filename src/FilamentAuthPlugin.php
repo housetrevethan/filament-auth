@@ -8,7 +8,6 @@ use Housetrevethan\FilamentAuth\Filament\Resources\Users\UserResource;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Auth\MultiFactor\Email\EmailAuthentication;
 use Filament\Contracts\Plugin;
-use Filament\Facades\Filament;
 use Filament\Panel;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
