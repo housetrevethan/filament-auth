@@ -39,13 +39,6 @@ class UserFactory extends Factory
         ]);
     }
 
-    public function core(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'role' => \Housetrevethan\FilamentAuth\Enums\UserRole::Core,
-        ]);
-    }
-
     public function client(): static
     {
         return $this->state(fn (array $attributes) => [

@@ -65,6 +65,7 @@ class UserForm
                                             ->success()
                                             ->send();
                                     })
+                                    ->disabled(fn ($record) => $record !== null && $record->hasOAuthProvider())
                             ),
                         TextInput::make('password')
                             ->default(Str::password(12))

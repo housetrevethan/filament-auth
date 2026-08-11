@@ -2,6 +2,7 @@
 
 namespace Housetrevethan\FilamentAuth;
 
+use Filament\Auth\Pages\Login;
 use Housetrevethan\FilamentAuth\Filament\Pages\EditProfile;
 use Housetrevethan\FilamentAuth\Filament\Resources\Users\UserResource;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
@@ -101,7 +102,7 @@ class FilamentAuthPlugin implements Plugin
                     </a>
                 </div>'
             ),
-            scopes: \Filament\Auth\Pages\Login::class,
+            scopes: Login::class,
         );
     }
 
