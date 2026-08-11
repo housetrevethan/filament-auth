@@ -113,4 +113,9 @@ class User extends Authenticatable implements
 
         return Storage::disk('public')->url($this->avatar);
     }
+
+    public function hasOAuthProvider(): bool
+    {
+        return $this->oauth_provider_id !== null && $this->oauth_provider_name !== null;
+    }
 }
