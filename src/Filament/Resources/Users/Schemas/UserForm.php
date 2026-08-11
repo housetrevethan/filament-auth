@@ -24,14 +24,15 @@ class UserForm
                 Section::make('User Information')
                     ->schema([
                         TextEntry::make('Account Type')
-                            ->state(function (User $user) {
-                                $oAuthMessage = "This user's account is managed via Microsoft. Email, Name, and 2FA are readonly/disabled.";
-                                $localMessage = "This user's account is a local login account.";
-                                if ($user->hasOAuthProvider()) {
-                                    return $oAuthMessage;
+                            ->visible(fn ($record): bool => $record !== null)
+                            ->state(function (?User $record): ?string {
+                                if ($record === null) {
+                                    return null;
                                 }
 
-                                return $localMessage;
+                                return $record->hasOAuthProvider()
+                                    ? "This user's account is managed via Microsoft. Email, Name, and 2FA are readonly/disabled."
+                                    : "This user's account is a local login account.";
                             }),
                         TextInput::make('name')
                             ->required()
