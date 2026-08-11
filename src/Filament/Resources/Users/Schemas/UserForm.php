@@ -78,7 +78,7 @@ class UserForm
                     ->schema([
                         Select::make('role')
                             ->options(UserRole::class)
-                            ->default(UserRole::Core)
+                            ->default(UserRole::Client)
                             ->required(),
                         Toggle::make('has_email_authentication')
                             ->label('Email Two-Factor Authentication')
