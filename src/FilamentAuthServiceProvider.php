@@ -3,7 +3,8 @@
 namespace Housetrevethan\FilamentAuth;
 
 use Housetrevethan\FilamentAuth\Console\InstallCommand;
-use Housetrevethan\FilamentAuth\Policies\UserPolicy;
+use Housetrevethan\FilamentAuth\Console\SyncRolesCommand;
+use Housetrevethan\FilamentAuth\Support\RoleRegistry;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -26,6 +27,8 @@ class FilamentAuthServiceProvider extends ServiceProvider
             'services.microsoft.include_avatar'       => true,
             'services.microsoft.include_avatar_size'  => '648x648',
         ]);
+
+        $this->app->singleton(RoleRegistry::class);
     }
 
     public function boot(): void
@@ -78,14 +81,34 @@ class FilamentAuthServiceProvider extends ServiceProvider
 
     private function registerPolicies(): void
     {
-        // Register the policy against the consuming app's User model (convention).
-        Gate::policy('App\Models\User', UserPolicy::class);
+        $userModel = config('filament-auth.user_model', 'App\Models\User');
+        $userPolicy = config('filament-auth.policies.user');
+
+        if ($userPolicy !== null) {
+            Gate::policy($userModel, $userPolicy);
+        }
+
+        // The super role bypasses every check. Returning null (rather than
+        // false) for everyone else leaves the remaining gates and policies —
+        // including spatie's own permission check — free to run.
+        Gate::before(function ($user, string $ability) {
+            $super = config('filament-auth.roles.super');
+
+            if (blank($super) || ! method_exists($user, 'hasRole')) {
+                return null;
+            }
+
+            return $user->hasRole($super) ? true : null;
+        });
     }
 
     private function registerCommands(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([InstallCommand::class]);
+            $this->commands([
+                InstallCommand::class,
+                SyncRolesCommand::class,
+            ]);
         }
     }
 }

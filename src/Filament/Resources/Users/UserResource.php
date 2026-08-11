@@ -27,7 +27,7 @@ class UserResource extends Resource
 
     public static function getModel(): string
     {
-        return 'App\Models\User';
+        return config('filament-auth.user_model', 'App\Models\User');
     }
 
     public static function form(Schema $schema): Schema

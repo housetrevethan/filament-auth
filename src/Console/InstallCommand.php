@@ -17,14 +17,34 @@ class InstallCommand extends Command
         $this->newLine();
 
         $this->publishConfig();
+        $this->publishPermissionTables();
         $this->publishMigrations();
         $this->printModelChecklist();
         $this->printPanelChecklist();
 
         $this->newLine();
         $this->info('Installation complete!');
+        $this->newLine();
+        $this->warn('  Next: run "php artisan migrate" then "php artisan filament-auth:sync-roles".');
 
         return self::SUCCESS;
+    }
+
+    private function publishPermissionTables(): void
+    {
+        $this->info('→ Publishing roles & permissions (spatie/laravel-permission)...');
+
+        $this->callSilently('vendor:publish', [
+            '--tag'   => 'laravel-permission-migrations',
+            '--force' => false,
+        ]);
+
+        $this->callSilently('vendor:publish', [
+            '--tag'   => 'laravel-permission-config',
+            '--force' => false,
+        ]);
+
+        $this->line('  Permission tables migration and <comment>config/permission.php</comment> published.');
     }
 
     private function publishConfig(): void
@@ -77,11 +97,13 @@ class InstallCommand extends Command
         $this->newLine();
         $this->warn('  ⚠  Verify your users table migration includes these columns:');
         $this->line('     - avatar (text, nullable)');
-        $this->line('     - role (string, default: "core")');
         $this->line('     - app_authentication_secret (text, nullable)');
         $this->line('     - app_authentication_recovery_codes (text, nullable)');
         $this->line('     - has_email_authentication (boolean, default: false)');
         $this->line('     If any are missing, add them before running <comment>php artisan migrate</comment>.');
+        $this->newLine();
+        $this->line('  Any legacy <comment>users.role</comment> column is migrated onto the permission');
+        $this->line('  tables automatically, then dropped.');
     }
 
     private function publishMigrationFile(string $stub, string $destinationFilename, bool $isAuto): void
@@ -117,11 +139,14 @@ class InstallCommand extends Command
         $this->line('  <comment>class User extends \Housetrevethan\FilamentAuth\Models\User</comment>');
         $this->line('  <comment>{</comment>');
         $this->line('  <comment>    // App-specific additions only.</comment>');
-        $this->line('  <comment>    // Override canAccessPanel() here if your role logic differs.</comment>');
         $this->line('  <comment>}</comment>');
         $this->newLine();
         $this->line('  The base model provides all fillable fields, casts, MFA methods,');
-        $this->line('  avatar helper, and Filament interface implementations automatically.');
+        $this->line('  avatar helper, the spatie HasRoles trait, and Filament interface');
+        $this->line('  implementations automatically.');
+        $this->newLine();
+        $this->line('  Panel access is granted by the <comment>panel.access</comment> permission —');
+        $this->line('  override canAccessPanel() only if you need different logic.');
     }
 
     private function printPanelChecklist(): void

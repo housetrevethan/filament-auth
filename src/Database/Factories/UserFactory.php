@@ -2,6 +2,7 @@
 
 namespace Housetrevethan\FilamentAuth\Database\Factories;
 
+use Housetrevethan\FilamentAuth\Enums\UserRole;
 use Housetrevethan\FilamentAuth\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -34,16 +35,32 @@ class UserFactory extends Factory
 
     public function admin(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'role' => \Housetrevethan\FilamentAuth\Enums\UserRole::Admin,
-        ]);
+        return $this->withRole(UserRole::Admin->value);
     }
 
     public function client(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'role' => \Housetrevethan\FilamentAuth\Enums\UserRole::Client,
-        ]);
+        return $this->withRole(UserRole::Client->value);
+    }
+
+    public function houseTrevethanStaff(): static
+    {
+        return $this->withRole(UserRole::HouseTrevethanStaff->value);
+    }
+
+    /**
+     * Roles are stored in a pivot table, so they can only be attached once the
+     * user exists.
+     */
+    public function withRole(string $role): static
+    {
+        return $this->afterCreating(function (User $user) use ($role): void {
+            $roleClass = config('permission.models.role', \Spatie\Permission\Models\Role::class);
+
+            $user->assignRole(
+                $roleClass::findOrCreate($role, config('auth.defaults.guard', 'web'))
+            );
+        });
     }
 
     public function oauthMicrosoft(): static

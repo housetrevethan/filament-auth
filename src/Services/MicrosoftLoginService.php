@@ -3,12 +3,12 @@
 namespace Housetrevethan\FilamentAuth\Services;
 
 use Housetrevethan\FilamentAuth\Enums\OAuthRejectionReason;
-use Housetrevethan\FilamentAuth\Enums\UserRole;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Housetrevethan\FilamentAuth\Models\User as SystemUser;
 use Laravel\Socialite\Contracts\User;
+use Throwable;
 
 class MicrosoftLoginService
 {
@@ -48,25 +48,28 @@ class MicrosoftLoginService
         return false;
     }
 
-    public function getUserRole(): UserRole
+    public function getUserRole(): string
     {
-        $debugHtStaff = UserRole::HouseTrevethanStaff->getLabel();
-        $debugAdmin = UserRole::Admin->getLabel();
-        $debugClient = UserRole::Client->getLabel();
+        $map = config('filament-auth.roles.oauth', []);
 
-        if ($this->microsoftTenantId === config('filament-auth.microsoft.house_trevethan_tenant_id'))
-        {
-            Log::info("$this->microsoftUserEmail is assigned the following user role: $debugHtStaff");
-            return UserRole::HouseTrevethanStaff;
+        if ($this->microsoftTenantId === config('filament-auth.microsoft.house_trevethan_tenant_id')) {
+            $role = $map['house_trevethan_tenant'] ?? config('filament-auth.roles.default');
+            Log::info("$this->microsoftUserEmail is assigned the following user role: $role");
+
+            return $role;
         }
-        elseif (in_array($this->microsoftTenantId, config('filament-auth.microsoft.allowed_tenant_ids')))
-        {
-            Log::info("$this->microsoftUserEmail is assigned the following user role: $debugAdmin");
-            return UserRole::Admin;
+
+        if (in_array($this->microsoftTenantId, config('filament-auth.microsoft.allowed_tenant_ids'))) {
+            $role = $map['allowed_tenant'] ?? config('filament-auth.roles.default');
+            Log::info("$this->microsoftUserEmail is assigned the following user role: $role");
+
+            return $role;
         }
-        
-        Log::info("$this->microsoftUserEmail is assigned the following user role: $debugClient");
-        return UserRole::Client;
+
+        $role = $map['fallback'] ?? config('filament-auth.roles.default');
+        Log::info("$this->microsoftUserEmail is assigned the following user role: $role");
+
+        return $role;
     }
 
     public function getSystemUser(): ?SystemUser
@@ -112,7 +115,7 @@ class MicrosoftLoginService
     {
         Log::info("User does not exist. Creating the user with email: $this->microsoftUserEmail");
 
-        return SystemUser::create([
+        $systemUser = SystemUser::create([
             'name' => $this->microsoftUserName,
             'email' => $this->microsoftUserEmail,
             'oauth_provider_id' => $this->microsoftTenantId,
@@ -120,9 +123,31 @@ class MicrosoftLoginService
             'oauth_provider_user_id' => $this->microsoftUserId,
             'email_verified_at' => now(),
             'password' => Hash::make(Str::random(40)),
-            'role' => $this->getUserRole(),
             'avatar' => $this->microsoftAvatarUrl,
         ]);
+
+        $this->syncRole($systemUser);
+
+        return $systemUser;
+    }
+
+    /**
+     * Apply the tenant-derived role, skipping silently if it has not been
+     * created yet so a missing role never blocks a login.
+     */
+    protected function syncRole(SystemUser $systemUser): void
+    {
+        $role = $this->getUserRole();
+
+        if (blank($role)) {
+            return;
+        }
+
+        try {
+            $systemUser->syncRoles([$role]);
+        } catch (Throwable $e) {
+            Log::warning("Could not assign role '$role' to $this->microsoftUserEmail: " . $e->getMessage());
+        }
     }
 
     protected function updateExistingIdentity(SystemUser $systemUser): ?SystemUser
@@ -144,7 +169,6 @@ class MicrosoftLoginService
 
         $attributes = [
             'name' => $this->microsoftUserName,
-            'role' => $this->getUserRole(),
             'avatar' => $this->microsoftAvatarUrl,
         ];
 
@@ -166,6 +190,8 @@ class MicrosoftLoginService
         }
 
         $systemUser->update($attributes);
+
+        $this->syncRole($systemUser);
 
         return $systemUser;
     }

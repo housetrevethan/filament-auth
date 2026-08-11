@@ -5,7 +5,8 @@ Base authentication package for House Trevethan Filament applications.
 This package provides:
 
 - Microsoft OAuth sign-in flow for Filament login pages
-- Role-aware user provisioning (Core or Client based on tenant)
+- Extensible roles and permissions, backed by spatie/laravel-permission
+- Role-aware user provisioning based on the Microsoft tenant
 - Filament multi-factor authentication (app and/or email)
 - Optional bundled User resource and profile page integration
 
@@ -168,7 +169,7 @@ namespace App\Models;
 class User extends \Housetrevethan\FilamentAuth\Models\User
 {
     // Add app-specific relationships or methods here.
-    // Override canAccessPanel() if your role access rules differ.
+    // The base model already applies spatie's HasRoles trait.
 }
 ```
 
@@ -187,6 +188,8 @@ Published `config/filament-auth.php` includes:
 
 - `microsoft.house_trevethan_tenant_id`
 - `microsoft.allowed_tenant_ids`
+- `user_model` / `policies.user`
+- `roles.super` / `roles.default` / `roles.protected` / `roles.definitions` / `roles.oauth`
 - `mfa.app_enabled`
 - `mfa.email_enabled`
 - `mfa.recovery_code_count`
@@ -194,12 +197,97 @@ Published `config/filament-auth.php` includes:
 
 You can tune MFA behavior either through plugin method arguments (`->mfa(...)`) and/or config values.
 
+## Roles & Permissions
+
+Authorization is permission-based. Package code never checks a role name — it
+checks a permission — so applications can add their own roles freely.
+
+Permissions shipped by the package are listed in
+`Housetrevethan\FilamentAuth\Enums\Permission`:
+
+`panel.access`, `users.viewAny`, `users.view`, `users.create`, `users.update`,
+`users.delete`, `users.restore`, `users.forceDelete`, `users.editProfile`,
+`users.changeRole`, `roles.manage`, `roles.assignProtected`.
+
+### Default roles
+
+| Role | Permissions |
+| --- | --- |
+| `house_trevethan_staff` | All (super role — bypasses every check) |
+| `admin` | Panel access and full user management, except assigning protected roles |
+| `client` | None |
+
+Sync the code-defined defaults into the database after migrating:
+
+```bash
+php artisan migrate
+php artisan filament-auth:sync-roles
+```
+
+The sync is additive by default, so permissions granted to a role at runtime
+survive a deploy. Use `--prune` to make the database match config exactly.
+
+### Adding roles in code
+
+Add an entry to `roles.definitions` in `config/filament-auth.php`, then re-run
+`filament-auth:sync-roles`:
+
+```php
+'instructor' => [
+    'label' => 'Instructor',
+    'permissions' => [
+        'panel.access',
+        'users.viewAny',
+    ],
+],
+```
+
+Applications may also invent their own permission keys here — the sync command
+creates any permission referenced by a role definition.
+
+### Adding roles at runtime
+
+Roles are ordinary spatie models, so they can be created and edited by an admin
+UI at any time. They immediately work with the package's user resource:
+
+```php
+use Spatie\Permission\Models\Role;
+
+Role::findOrCreate('reviewer', 'web')->givePermissionTo('panel.access');
+```
+
+### Protected roles and privilege escalation
+
+Roles listed in `roles.protected` (and the `roles.super` role) can only be
+granted by a user holding `roles.assignProtected`.
+
+Beyond that, a user may never assign a role carrying a permission they do not
+themselves hold. This prevents anyone with role-management access from creating
+a powerful role and promoting themselves into it.
+
+### Replacing the policy entirely
+
+If the permission model is not enough, point `policies.user` at your own class,
+or set it to `null` to register nothing.
+
+## Upgrading from the enum-based roles
+
+Earlier versions stored a single role string on `users.role` and used the
+`UserRole` enum. That column is migrated onto the permission tables and dropped
+automatically. Note these breaking changes:
+
+- `$user->role` no longer exists. Use `$user->hasRole('admin')`,
+  `$user->primaryRoleName()`, or a permission check.
+- `canAccessPanel()` now checks the `panel.access` permission.
+- `UserRole` remains only as a convenience reference to the built-in role names.
+
 ## User Provisioning Behavior (Microsoft Login)
 
 - Tenant must match `HOUSE_TREVETHAN_TENANT_ID` or be present in `MICROSOFT_ALLOWED_TENANT_IDS`
-- New users are created with role:
-  - `core` when from the House Trevethan tenant
-  - `client` when from an allowed client tenant
+- New users are created with the role mapped in `filament-auth.roles.oauth`:
+  - `house_trevethan_staff` when from the House Trevethan tenant
+  - `admin` when from an allowed client tenant
+  - `client` otherwise
 - Existing OAuth users are updated on login
 - Existing local (non-OAuth) users with the same email are not converted to OAuth accounts
 

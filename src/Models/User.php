@@ -2,7 +2,7 @@
 
 namespace Housetrevethan\FilamentAuth\Models;
 
-use Housetrevethan\FilamentAuth\Enums\UserRole;
+use Housetrevethan\FilamentAuth\Enums\Permission;
 use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthenticationRecovery;
 use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
 use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery;
@@ -15,6 +15,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements
     FilamentUser,
@@ -25,6 +26,7 @@ class User extends Authenticatable implements
     MustVerifyEmail
 {
     use Notifiable;
+    use HasRoles;
 
     use InteractsWithAppAuthenticationRecovery;
     use InteractsWithEmailAuthentication;
@@ -37,7 +39,6 @@ class User extends Authenticatable implements
         'email',
         'password',
         'avatar',
-        'role',
         'app_authentication_secret',
         'app_authentication_recovery_codes',
         'has_email_authentication',
@@ -62,7 +63,6 @@ class User extends Authenticatable implements
         return [
             'email_verified_at'                  => 'datetime',
             'password'                           => 'hashed',
-            'role'                               => UserRole::class,
             'app_authentication_secret'          => 'encrypted',
             'app_authentication_recovery_codes'  => 'encrypted:array',
             'has_email_authentication'           => 'boolean',
@@ -71,7 +71,16 @@ class User extends Authenticatable implements
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return in_array($this->role, [UserRole::Admin, UserRole::HouseTrevethanStaff]);
+        return $this->can(Permission::AccessPanel->value);
+    }
+
+    /**
+     * The user's role name. Roles are many-to-many, but this package's user
+     * management presents a single role per user.
+     */
+    public function primaryRoleName(): ?string
+    {
+        return $this->getRoleNames()->first();
     }
 
     public function getAppAuthenticationSecret(): ?string

@@ -5,6 +5,7 @@ namespace Housetrevethan\FilamentAuth\Filament\Resources\Users\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Housetrevethan\FilamentAuth\Support\RoleRegistry;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -19,8 +20,10 @@ class UsersTable
                 TextColumn::make('email')
                     ->label('Email Address')
                     ->searchable(),
-                TextColumn::make('role')
+                TextColumn::make('roles.name')
+                    ->label('Role')
                     ->badge()
+                    ->formatStateUsing(fn (string $state): string => app(RoleRegistry::class)->label($state))
                     ->searchable(),
                 TextColumn::make('created_at')
                     ->dateTime()
