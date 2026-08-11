@@ -5,6 +5,7 @@ namespace Housetrevethan\FilamentAuth\Http\Controllers;
 use Housetrevethan\FilamentAuth\Services\MicrosoftLoginService;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Routing\Controller;
 

@@ -56,7 +56,8 @@ class InstallCommand extends Command
             $this->line('  No <comment>create_users_table</comment> migration found — publishing full users table migration...');
             $this->publishMigrationFile(
                 'create_users_table',
-                $now->format('Y_m_d_His') . '_create_users_table.php'
+                $now->format('Y_m_d_His') . '_create_users_table.php',
+                false
             );
             // Ensure OAuth migration runs after create by bumping the timestamp 1 second
             $now->addSecond();
@@ -65,7 +66,8 @@ class InstallCommand extends Command
         if (! $this->findExistingMigration('add_oauth_columns_to_users')) {
             $this->publishMigrationFile(
                 'add_oauth_columns_to_users',
-                $now->format('Y_m_d_His') . '_add_oauth_columns_to_users.php'
+                $now->format('Y_m_d_His') . '_add_oauth_columns_to_users.php',
+                true
             );
             $this->line('  Migration published: <comment>add_oauth_columns_to_users</comment>');
         } else {
@@ -82,11 +84,15 @@ class InstallCommand extends Command
         $this->line('     If any are missing, add them before running <comment>php artisan migrate</comment>.');
     }
 
-    private function publishMigrationFile(string $stub, string $destinationFilename): void
+    private function publishMigrationFile(string $stub, string $destinationFilename, bool $isAuto): void
     {
-        $source = __DIR__ . "/../Database/Migrations/{$stub}.php";
-        $destination = database_path("migrations/{$destinationFilename}");
+        if (! $isAuto) {
+            $source = __DIR__ . "/../Database/Migrations/{$stub}.php";
+        } else {
+            $source = __DIR__ . "/../Database/Migrations/auto/{$stub}.php";
+        }
 
+        $destination = database_path("migrations/{$destinationFilename}");
         if (! file_exists($destination)) {
             copy($source, $destination);
         }
