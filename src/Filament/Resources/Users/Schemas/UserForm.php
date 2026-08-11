@@ -2,7 +2,7 @@
 
 namespace Housetrevethan\FilamentAuth\Filament\Resources\Users\Schemas;
 
-use App\Models\User;
+use Housetrevethan\FilamentAuth\Models\User;
 use Housetrevethan\FilamentAuth\Enums\UserRole;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
