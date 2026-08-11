@@ -45,18 +45,22 @@ class MicrosoftLoginService
 
     public function getUserRole(): UserRole
     {
+        $debugHtStaff = UserRole::HouseTrevethanStaff->getLabel();
+        $debugAdmin = UserRole::Admin->getLabel();
+        $debugClient = UserRole::Client->getLabel();
+
         if ($this->microsoftTenantId === config('filament-auth.microsoft.house_trevethan_tenant_id'))
         {
-            Log::info("$this->microsoftUserEmail is assigned the following user role: ${UserRole::HouseTrevethanStaff->value}");
+            Log::info("$this->microsoftUserEmail is assigned the following user role: $debugHtStaff");
             return UserRole::HouseTrevethanStaff;
         }
         elseif (in_array($this->microsoftTenantId, config('filament-auth.microsoft.allowed_tenant_ids')))
         {
-            Log::info("$this->microsoftUserEmail is assigned the following user role: ${UserRole::Admin->value}");
+            Log::info("$this->microsoftUserEmail is assigned the following user role: $debugAdmin");
             return UserRole::Admin;
         }
         
-        Log::info("$this->microsoftUserEmail is assigned the following user role: ${UserRole::Client->value}");
+        Log::info("$this->microsoftUserEmail is assigned the following user role: $debugClient");
         return UserRole::Client;
     }
 
