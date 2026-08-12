@@ -2,16 +2,16 @@
 
 namespace Housetrevethan\FilamentAuth\Filament\Resources\Users;
 
-use Housetrevethan\FilamentAuth\Filament\Resources\Users\Pages\CreateUser;
-use Housetrevethan\FilamentAuth\Filament\Resources\Users\Pages\EditUser;
-use Housetrevethan\FilamentAuth\Filament\Resources\Users\Pages\ListUsers;
-use Housetrevethan\FilamentAuth\Filament\Resources\Users\Schemas\UserForm;
-use Housetrevethan\FilamentAuth\Filament\Resources\Users\Tables\UsersTable;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Housetrevethan\FilamentAuth\Filament\Resources\Users\Pages\CreateUser;
+use Housetrevethan\FilamentAuth\Filament\Resources\Users\Pages\EditUser;
+use Housetrevethan\FilamentAuth\Filament\Resources\Users\Pages\ListUsers;
+use Housetrevethan\FilamentAuth\Filament\Resources\Users\Schemas\UserForm;
+use Housetrevethan\FilamentAuth\Filament\Resources\Users\Tables\UsersTable;
 
 class UserResource extends Resource
 {
@@ -48,9 +48,9 @@ class UserResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => ListUsers::route('/'),
+            'index' => ListUsers::route('/'),
             'create' => CreateUser::route('/create'),
-            'edit'   => EditUser::route('/{record}/edit'),
+            'edit' => EditUser::route('/{record}/edit'),
         ];
     }
 }

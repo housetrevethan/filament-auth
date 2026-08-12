@@ -32,7 +32,7 @@ class InstallCommand extends Command
         $this->info('→ Publishing config...');
 
         $this->callSilently('vendor:publish', [
-            '--tag'   => 'filament-auth-config',
+            '--tag' => 'filament-auth-config',
             '--force' => false,
         ]);
 
@@ -86,14 +86,14 @@ class InstallCommand extends Command
 
     private function publishMigrationFile(string $stub, string $destinationFilename, bool $isAuto): void
     {
-        if (! $isAuto) {
+        if (!$isAuto) {
             $source = __DIR__ . "/../Database/Migrations/{$stub}.php";
         } else {
             $source = __DIR__ . "/../Database/Migrations/auto/{$stub}.php";
         }
 
         $destination = database_path("migrations/{$destinationFilename}");
-        if (! file_exists($destination)) {
+        if (!file_exists($destination)) {
             copy($source, $destination);
         }
     }
@@ -117,7 +117,7 @@ class InstallCommand extends Command
         $this->line('  <comment>class User extends \Housetrevethan\FilamentAuth\Models\User</comment>');
         $this->line('  <comment>{</comment>');
         $this->line('  <comment>    // App-specific additions only.</comment>');
-        $this->line('  <comment>    // Override canAccessPanel() here if your role logic differs.</comment>');
+        $this->line('  <comment>    // Override canAccessPanel() here! This package does not handle roles or permissions.</comment>');
         $this->line('  <comment>}</comment>');
         $this->newLine();
         $this->line('  The base model provides all fillable fields, casts, MFA methods,');

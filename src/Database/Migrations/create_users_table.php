@@ -1,12 +1,10 @@
 <?php
 
-use Housetrevethan\FilamentAuth\Enums\UserRole;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
@@ -19,7 +17,6 @@ return new class extends Migration
             $table->text('app_authentication_secret')->nullable();
             $table->text('app_authentication_recovery_codes')->nullable();
             $table->boolean('has_email_authentication')->default(false);
-            $table->string('role')->default(UserRole::Core->value);
             $table->rememberToken();
             $table->timestamps();
         });

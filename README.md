@@ -101,7 +101,9 @@ FAILED_LOGIN_REDIRECT=<route-name-for-denied-logins>
 Important:
 
 - Use `HOUSE_TREVETHAN_TENANT_ID` for the House Trevethan tenant UUID.
-- `FILAMENT_DASHBOARD_ROUTE`, `FILAMENT_LOGIN_ROUTE`, and `FAILED_LOGIN_REDIRECT` must be valid named routes in your app. The OAuth controller uses these to redirect after login success, local-account conflict, and denied tenant, respectively.
+- `FILAMENT_DASHBOARD_ROUTE`, `FILAMENT_LOGIN_ROUTE`, and `FAILED_LOGIN_REDIRECT` must be valid named routes in your
+  app. The OAuth controller uses these to redirect after login success, local-account conflict, and denied tenant,
+  respectively.
 
 ## Microsoft Socialite Provider
 
@@ -128,7 +130,9 @@ public function boot(): void
 
 ## services.php Setup (Microsoft OAuth)
 
-Ensure your consuming app has a Microsoft Socialite provider config in `config/services.php` with **only** the three client-specific values. The package automatically sets `tenant`, `include_tenant_info`, `include_avatar`, and `include_avatar_size` at boot — do not override them:
+Ensure your consuming app has a Microsoft Socialite provider config in `config/services.php` with **only** the three
+client-specific values. The package automatically sets `tenant`, `include_tenant_info`, `include_avatar`, and
+`include_avatar_size` at boot — do not override them:
 
 ```php
 'microsoft' => [
@@ -179,7 +183,8 @@ The package registers:
 - `GET /auth/microsoft/redirect` (route name: `auth.microsoft.redirect`)
 - `GET /auth/microsoft/callback` (route name: `auth.microsoft.callback`)
 
-When `->microsoftOAuth()` is enabled, a "Sign in with Microsoft" action is rendered on the Filament login page and points to the redirect route above.
+When `->microsoftOAuth()` is enabled, a "Sign in with Microsoft" action is rendered on the Filament login page and
+points to the redirect route above.
 
 ## Configuration Reference
 
@@ -198,8 +203,8 @@ You can tune MFA behavior either through plugin method arguments (`->mfa(...)`) 
 
 - Tenant must match `HOUSE_TREVETHAN_TENANT_ID` or be present in `MICROSOFT_ALLOWED_TENANT_IDS`
 - New users are created with role:
-  - `core` when from the House Trevethan tenant
-  - `client` when from an allowed client tenant
+    - `core` when from the House Trevethan tenant
+    - `client` when from an allowed client tenant
 - Existing OAuth users are updated on login
 - Existing local (non-OAuth) users with the same email are not converted to OAuth accounts
 

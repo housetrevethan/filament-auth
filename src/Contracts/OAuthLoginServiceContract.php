@@ -2,7 +2,6 @@
 
 namespace Housetrevethan\FilamentAuth\Contracts;
 
-use Housetrevethan\FilamentAuth\Models\User;
 use Illuminate\Http\RedirectResponse;
 
 interface OAuthLoginServiceContract

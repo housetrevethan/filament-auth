@@ -17,40 +17,26 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name'              => fake()->name(),
-            'email'             => fake()->unique()->safeEmail(),
+            'name' => fake()->name(),
+            'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
-            'password'          => Hash::make('password'),
-            'remember_token'    => Str::random(10),
+            'password' => Hash::make('password'),
+            'remember_token' => Str::random(10),
         ];
     }
 
     public function unverified(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'email_verified_at' => null,
-        ]);
-    }
-
-    public function admin(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'role' => \Housetrevethan\FilamentAuth\Enums\UserRole::Admin,
-        ]);
-    }
-
-    public function client(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'role' => \Housetrevethan\FilamentAuth\Enums\UserRole::Client,
         ]);
     }
 
     public function oauthMicrosoft(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'oauth_provider_name'    => 'microsoft',
-            'oauth_provider_id'      => fake()->uuid(),
+        return $this->state(fn(array $attributes) => [
+            'oauth_provider_name' => 'microsoft',
+            'oauth_provider_id' => fake()->uuid(),
             'oauth_provider_user_id' => fake()->uuid(),
         ]);
     }

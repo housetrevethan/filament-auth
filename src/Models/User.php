@@ -2,7 +2,6 @@
 
 namespace Housetrevethan\FilamentAuth\Models;
 
-use Housetrevethan\FilamentAuth\Enums\UserRole;
 use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthenticationRecovery;
 use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
 use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery;
@@ -37,7 +36,6 @@ class User extends Authenticatable implements
         'email',
         'password',
         'avatar',
-        'role',
         'app_authentication_secret',
         'app_authentication_recovery_codes',
         'has_email_authentication',
@@ -60,18 +58,17 @@ class User extends Authenticatable implements
     protected function casts(): array
     {
         return [
-            'email_verified_at'                  => 'datetime',
-            'password'                           => 'hashed',
-            'role'                               => UserRole::class,
-            'app_authentication_secret'          => 'encrypted',
-            'app_authentication_recovery_codes'  => 'encrypted:array',
-            'has_email_authentication'           => 'boolean',
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'app_authentication_secret' => 'encrypted',
+            'app_authentication_recovery_codes' => 'encrypted:array',
+            'has_email_authentication' => 'boolean',
         ];
     }
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return in_array($this->role, [UserRole::Admin, UserRole::HouseTrevethanStaff]);
+        return false;
     }
 
     public function getAppAuthenticationSecret(): ?string

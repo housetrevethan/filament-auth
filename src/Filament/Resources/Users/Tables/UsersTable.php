@@ -19,9 +19,6 @@ class UsersTable
                 TextColumn::make('email')
                     ->label('Email Address')
                     ->searchable(),
-                TextColumn::make('role')
-                    ->badge()
-                    ->searchable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

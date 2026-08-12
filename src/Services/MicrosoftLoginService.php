@@ -3,11 +3,10 @@
 namespace Housetrevethan\FilamentAuth\Services;
 
 use Housetrevethan\FilamentAuth\Enums\OAuthRejectionReason;
-use Housetrevethan\FilamentAuth\Enums\UserRole;
+use Housetrevethan\FilamentAuth\Models\User as SystemUser;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use Housetrevethan\FilamentAuth\Models\User as SystemUser;
 use Laravel\Socialite\Contracts\User;
 
 class MicrosoftLoginService
@@ -26,7 +25,7 @@ class MicrosoftLoginService
 
     public ?OAuthRejectionReason $rejectionReason = null;
 
-    protected const PROVIDER_NAME = 'microsoft';
+    protected const string PROVIDER_NAME = 'microsoft';
 
     public function __construct(public User $microsoftUser)
     {
@@ -40,33 +39,11 @@ class MicrosoftLoginService
 
     public function validTenantId(): bool
     {
-        if (in_array($this->microsoftTenantId, config('filament-auth.microsoft.allowed_tenant_ids')))
-        {
+        if (in_array($this->microsoftTenantId, config('filament-auth.microsoft.allowed_tenant_ids'))) {
             Log::info("Tenant ID confirmed for $this->microsoftUserEmail.");
             return true;
         }
         return false;
-    }
-
-    public function getUserRole(): UserRole
-    {
-        $debugHtStaff = UserRole::HouseTrevethanStaff->getLabel();
-        $debugAdmin = UserRole::Admin->getLabel();
-        $debugClient = UserRole::Client->getLabel();
-
-        if ($this->microsoftTenantId === config('filament-auth.microsoft.house_trevethan_tenant_id'))
-        {
-            Log::info("$this->microsoftUserEmail is assigned the following user role: $debugHtStaff");
-            return UserRole::HouseTrevethanStaff;
-        }
-        elseif (in_array($this->microsoftTenantId, config('filament-auth.microsoft.allowed_tenant_ids')))
-        {
-            Log::info("$this->microsoftUserEmail is assigned the following user role: $debugAdmin");
-            return UserRole::Admin;
-        }
-        
-        Log::info("$this->microsoftUserEmail is assigned the following user role: $debugClient");
-        return UserRole::Client;
     }
 
     public function getSystemUser(): ?SystemUser
@@ -120,7 +97,6 @@ class MicrosoftLoginService
             'oauth_provider_user_id' => $this->microsoftUserId,
             'email_verified_at' => now(),
             'password' => Hash::make(Str::random(40)),
-            'role' => $this->getUserRole(),
             'avatar' => $this->microsoftAvatarUrl,
         ]);
     }
@@ -144,7 +120,6 @@ class MicrosoftLoginService
 
         $attributes = [
             'name' => $this->microsoftUserName,
-            'role' => $this->getUserRole(),
             'avatar' => $this->microsoftAvatarUrl,
         ];
 

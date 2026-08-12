@@ -2,12 +2,12 @@
 
 namespace Housetrevethan\FilamentAuth\Http\Controllers;
 
+use Filament\Notifications\Notification;
 use Housetrevethan\FilamentAuth\Enums\OAuthRejectionReason;
 use Housetrevethan\FilamentAuth\Services\MicrosoftLoginService;
-use Filament\Notifications\Notification;
+use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
-use Illuminate\Routing\Controller;
 
 class MicrosoftLoginController extends Controller
 {
@@ -27,7 +27,7 @@ class MicrosoftLoginController extends Controller
             Socialite::driver($this->provider)->user()
         );
         // If the user has no tenant ID or the tenant ID is not allowed, deny login
-        if (! $microsoftLoginService->validTenantId()) {
+        if (!$microsoftLoginService->validTenantId()) {
             return redirect(route(config('filament-auth.filament-routes.failed-login-redirect')));
         }
 
@@ -35,6 +35,7 @@ class MicrosoftLoginController extends Controller
 
         if ($systemUser !== null) {
             Auth::login($systemUser);
+            request()->session()->regenerateToken();
             Notification::make()
                 ->title('Welcome from the House Trevethan Team!')
                 ->success()

@@ -2,9 +2,9 @@
 
 namespace Housetrevethan\FilamentAuth\Filament\Resources\Users\Pages;
 
-use Housetrevethan\FilamentAuth\Filament\Resources\Users\UserResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
+use Housetrevethan\FilamentAuth\Filament\Resources\Users\UserResource;
 
 class ListUsers extends ListRecords
 {

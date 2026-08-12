@@ -2,15 +2,15 @@
 
 namespace Housetrevethan\FilamentAuth;
 
-use Filament\Auth\Pages\Login;
-use Housetrevethan\FilamentAuth\Filament\Pages\EditProfile;
-use Housetrevethan\FilamentAuth\Filament\Resources\Users\UserResource;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Auth\MultiFactor\Email\EmailAuthentication;
+use Filament\Auth\Pages\Login;
 use Filament\Contracts\Plugin;
 use Filament\Panel;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
+use Housetrevethan\FilamentAuth\Filament\Pages\EditProfile;
+use Housetrevethan\FilamentAuth\Filament\Resources\Users\UserResource;
 use Illuminate\Support\HtmlString;
 
 class FilamentAuthPlugin implements Plugin
@@ -58,28 +58,28 @@ class FilamentAuthPlugin implements Plugin
         if ($this->mfaApp) {
             $mfaDrivers[] = AppAuthentication::make()
                 ->recoverable()
-                ->recoveryCodeCount((int) config('filament-auth.mfa.recovery_code_count', 8));
+                ->recoveryCodeCount((int)config('filament-auth.mfa.recovery_code_count', 8));
         }
 
         if ($this->mfaEmail) {
             $mfaDrivers[] = EmailAuthentication::make()
-                ->codeExpiryMinutes((int) config('filament-auth.mfa.code_expiry_minutes', 5));
+                ->codeExpiryMinutes((int)config('filament-auth.mfa.code_expiry_minutes', 5));
         }
 
-        if (! empty($mfaDrivers)) {
+        if (!empty($mfaDrivers)) {
             $panel->multiFactorAuthentication($mfaDrivers);
         }
     }
 
     public function boot(Panel $panel): void
     {
-        if (! $this->microsoftOAuth) {
+        if (!$this->microsoftOAuth) {
             return;
         }
 
         FilamentView::registerRenderHook(
             PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
-            fn (): HtmlString => new HtmlString(
+            fn(): HtmlString => new HtmlString(
                 '<div style="text-align:center; margin-top: 1rem;">
                     <a href="' . route('auth.microsoft.redirect') . '"
                        style="display:inline-flex; align-items:center; gap:0; padding:0;
@@ -107,7 +107,7 @@ class FilamentAuthPlugin implements Plugin
 
     public function mfa(bool $app = true, bool $email = true): static
     {
-        $this->mfaApp   = $app;
+        $this->mfaApp = $app;
         $this->mfaEmail = $email;
 
         return $this;
