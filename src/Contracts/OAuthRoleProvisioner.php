@@ -2,12 +2,12 @@
 
 namespace Housetrevethan\FilamentAuth\Contracts;
 
-use Housetrevethan\FilamentAuth\Models\User;
+use Illuminate\Contracts\Auth\Authenticatable;
 
 interface OAuthRoleProvisioner
 {
     /**
      * Provision roles, permissions, or initial state for a newly created OAuth user.
      */
-    public function provisionRoles(User $oauthUser): void;
+    public function provisionRoles(Authenticatable $oauthUser): void;
 }
