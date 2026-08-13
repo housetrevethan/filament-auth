@@ -2,146 +2,83 @@
 
 namespace Housetrevethan\FilamentAuth\Services;
 
+use Housetrevethan\FilamentAuth\Concerns\MicrosoftIdentityConcerns;
+use Housetrevethan\FilamentAuth\Contracts\OAuthRoleProvisioner;
+use Housetrevethan\FilamentAuth\Enums\OAuthProviderNames;
 use Housetrevethan\FilamentAuth\Enums\OAuthRejectionReason;
 use Housetrevethan\FilamentAuth\Models\User as SystemUser;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Laravel\Socialite\Contracts\User;
 
 class MicrosoftLoginService
 {
-    public string $microsoftUserEmail;
-
-    public string $microsoftUserName;
-
-    public ?string $microsoftAvatarUrl;
-
-    public ?string $microsoftTenantId;
-
-    public string $microsoftUserId;
-
-    public ?string $microsoftUserToken;
-
-    public ?OAuthRejectionReason $rejectionReason = null;
-
-    protected const string PROVIDER_NAME = 'microsoft';
-
-    public function __construct(public User $microsoftUser)
+    public function __construct(protected OAuthRoleProvisioner $oauthRoleProvisioner)
     {
-        $this->microsoftUserEmail = $this->microsoftUser->getEmail();
-        $this->microsoftUserName = $this->microsoftUser->getName();
-        $this->microsoftAvatarUrl = $this->microsoftUser->getAvatar();
-        $this->microsoftUserId = $this->microsoftUser->getId();
-        $this->microsoftUserToken = $this->microsoftUser->token;
-        $this->microsoftTenantId = $this->microsoftUser->tenant['id'] ?? null;
+
     }
 
-    public function validTenantId(): bool
+    public static function validTenantId(User $systemUser): bool
     {
-        if (in_array($this->microsoftTenantId, config('filament-auth.microsoft.allowed_tenant_ids'))) {
-            Log::info("Tenant ID confirmed for $this->microsoftUserEmail.");
+        $tenantId = $systemUser->tenant['id'] ?? null;
+        $userEmail = $systemUser->getEmail();
+
+        // Must have a valid tenant id
+        if (!$tenantId) return false;
+
+        if (in_array($tenantId, config('filament-auth.microsoft.allowed_tenant_ids'))) {
+            Log::info("Tenant ID confirmed for $userEmail.");
             return true;
         }
         return false;
     }
 
-    public function getSystemUser(): ?SystemUser
+    public function getAndValidateSystemUser(User $socialiteUser): array
     {
+        $oauthUserData = [
+            'email' => $socialiteUser->getEmail(),
+            'name' => $socialiteUser->getName(),
+            'avatar' => $socialiteUser->getAvatar(),
+            'oauth-user-id' => $socialiteUser->getId(),
+            'oauth-provider-id' => $socialiteUser->tenant['id'] ?? null,
+            'oauth-provider-token' => $socialiteUser->token,
+            'oauth-provider-name' => OAuthProviderNames::Microsoft->value,
+        ];
+
         // Resolve the account by the provider's immutable identifier, never by
         // the email claim. Email addresses are mutable and can be reassigned by
         // a tenant administrator, so matching on them would let one identity
         // bind itself to another user's account.
-        $systemUser = SystemUser::where('oauth_provider_name', self::PROVIDER_NAME)
-            ->where('oauth_provider_user_id', $this->microsoftUserId)
+        $systemUser = SystemUser::where('oauth_provider_name', $oauthUserData['oauth-provider-name'])
+            ->where('oauth_provider_user_id', $oauthUserData['oauth-user-id'])
             ->first();
 
         if ($systemUser !== null) {
-            return $this->updateExistingIdentity($systemUser);
+            return MicrosoftIdentityConcerns::updateExistingIdentity($systemUser, $oauthUserData);
         }
 
-        $emailOwner = SystemUser::where('email', $this->microsoftUserEmail)->first();
+        $emailOwner = SystemUser::where('email', $oauthUserData['email'])->first();
 
         if ($emailOwner === null) {
-            return $this->createSystemUser();
+            return [
+                'system-user' => MicrosoftIdentityConcerns::createUserFromIdentity($oauthUserData),
+                'rejection-reason' => null
+            ];
         }
 
         // The email is already taken by a different OAuth identity. Rebinding
         // it would hand this login control of that account, so refuse.
         if ($emailOwner->oauth_provider_user_id !== null) {
             Log::warning(
-                "Rejected Microsoft login: $this->microsoftUserEmail is already bound to a different OAuth identity."
+                "Rejected Microsoft login: {$oauthUserData['email']} is already bound to a different OAuth identity."
             );
-            $this->rejectionReason = OAuthRejectionReason::EmailConflict;
 
-            return null;
+            return ['system-user' => null, 'rejection-reason' => OAuthRejectionReason::EmailConflict];
         }
 
         // The user has a local account. We return null here and reject the
         // login to avoid a database error.
-        Log::info("User already has a local account: $this->microsoftUserEmail");
-        $this->rejectionReason = OAuthRejectionReason::LocalAccount;
+        Log::info("User already has a local account: {$oauthUserData['email']}");
 
-        return null;
-    }
-
-    protected function createSystemUser(): SystemUser
-    {
-        Log::info("User does not exist. Creating the user with email: $this->microsoftUserEmail");
-
-        return SystemUser::create([
-            'name' => $this->microsoftUserName,
-            'email' => $this->microsoftUserEmail,
-            'oauth_provider_id' => $this->microsoftTenantId,
-            'oauth_provider_name' => self::PROVIDER_NAME,
-            'oauth_provider_user_id' => $this->microsoftUserId,
-            'email_verified_at' => now(),
-            'password' => Hash::make(Str::random(40)),
-            'avatar' => $this->microsoftAvatarUrl,
-        ]);
-    }
-
-    protected function updateExistingIdentity(SystemUser $systemUser): ?SystemUser
-    {
-        // The identity is known but is arriving from a different tenant than
-        // the one it was provisioned under. Moving an account between tenants
-        // changes its role and trust level, so it must be done deliberately.
-        if ($systemUser->oauth_provider_id !== $this->microsoftTenantId) {
-            Log::warning(
-                "Rejected Microsoft login for $this->microsoftUserEmail: tenant changed from "
-                . "$systemUser->oauth_provider_id to $this->microsoftTenantId."
-            );
-            $this->rejectionReason = OAuthRejectionReason::TenantMismatch;
-
-            return null;
-        }
-
-        Log::info("User has a previous login, updating profile for $this->microsoftUserEmail");
-
-        $attributes = [
-            'name' => $this->microsoftUserName,
-            'avatar' => $this->microsoftAvatarUrl,
-        ];
-
-        // Sync the email only when it is not already held by another account,
-        // otherwise the unique constraint would abort the login.
-        if ($systemUser->email !== $this->microsoftUserEmail) {
-            $emailTaken = SystemUser::where('email', $this->microsoftUserEmail)
-                ->whereKeyNot($systemUser->getKey())
-                ->exists();
-
-            if ($emailTaken) {
-                Log::warning(
-                    "Could not sync email for identity $this->microsoftUserId: "
-                    . "$this->microsoftUserEmail is already in use by another account."
-                );
-            } else {
-                $attributes['email'] = $this->microsoftUserEmail;
-            }
-        }
-
-        $systemUser->update($attributes);
-
-        return $systemUser;
+        return ['system-user' => null, 'rejection-reason' => OAuthRejectionReason::LocalAccount];
     }
 }

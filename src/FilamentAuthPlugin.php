@@ -9,8 +9,6 @@ use Filament\Contracts\Plugin;
 use Filament\Panel;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
-use Housetrevethan\FilamentAuth\Filament\Pages\EditProfile;
-use Housetrevethan\FilamentAuth\Filament\Resources\Users\UserResource;
 use Illuminate\Support\HtmlString;
 
 class FilamentAuthPlugin implements Plugin
@@ -45,14 +43,6 @@ class FilamentAuthPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        if ($this->registerUserResource) {
-            $panel->resources([UserResource::class]);
-        }
-
-        if ($this->registerEditProfile) {
-            $panel->profile(EditProfile::class, isSimple: false);
-        }
-
         $mfaDrivers = [];
 
         if ($this->mfaApp) {
@@ -116,20 +106,6 @@ class FilamentAuthPlugin implements Plugin
     public function microsoftOAuth(): static
     {
         $this->microsoftOAuth = true;
-
-        return $this;
-    }
-
-    public function userResource(bool $register = true): static
-    {
-        $this->registerUserResource = $register;
-
-        return $this;
-    }
-
-    public function editProfile(bool $register = true): static
-    {
-        $this->registerEditProfile = $register;
 
         return $this;
     }

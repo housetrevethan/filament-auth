@@ -3,6 +3,7 @@
 namespace Housetrevethan\FilamentAuth\Http\Controllers;
 
 use Filament\Notifications\Notification;
+use Housetrevethan\FilamentAuth\Enums\OAuthProviderNames;
 use Housetrevethan\FilamentAuth\Enums\OAuthRejectionReason;
 use Housetrevethan\FilamentAuth\Services\MicrosoftLoginService;
 use Illuminate\Routing\Controller;
@@ -11,27 +12,29 @@ use Laravel\Socialite\Facades\Socialite;
 
 class MicrosoftLoginController extends Controller
 {
-    private string $provider = 'microsoft';
+    public function __construct(protected MicrosoftLoginService $microsoftLoginService)
+    {
+    }
 
     /*
      *
      */
     public function create()
     {
-        return Socialite::driver($this->provider)->redirect();
+        return Socialite::driver(OAuthProviderNames::Microsoft->value)->redirect();
     }
 
     public function store()
     {
-        $microsoftLoginService = new MicrosoftLoginService(
-            Socialite::driver($this->provider)->user()
-        );
+        $socialiteUser = Socialite::driver(OAuthProviderNames::Microsoft->value)->user();
         // If the user has no tenant ID or the tenant ID is not allowed, deny login
-        if (!$microsoftLoginService->validTenantId()) {
+        if (!$this->microsoftLoginService::validTenantId($socialiteUser)) {
             return redirect(route(config('filament-auth.filament-routes.failed-login-redirect')));
         }
 
-        $systemUser = $microsoftLoginService->getSystemUser();
+        $userValidation = $this->microsoftLoginService->getAndValidateSystemUser($socialiteUser);
+        $systemUser = $userValidation['system-user'];
+        $rejectionResponse = $userValidation['rejection-reason'];
 
         if ($systemUser !== null) {
             Auth::login($systemUser);
@@ -49,7 +52,7 @@ class MicrosoftLoginController extends Controller
         request()->session()->invalidate();
         request()->session()->regenerateToken();
 
-        $this->rejectionNotification($microsoftLoginService->rejectionReason)->send();
+        $this->rejectionNotification($rejectionResponse)->send();
 
         return redirect(route(config('filament-auth.filament-routes.filament-login-route')));
     }
@@ -72,4 +75,3 @@ class MicrosoftLoginController extends Controller
         };
     }
 }
-

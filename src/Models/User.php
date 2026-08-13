@@ -24,7 +24,6 @@ class User extends Authenticatable implements
     MustVerifyEmail
 {
     use Notifiable;
-
     use InteractsWithAppAuthenticationRecovery;
     use InteractsWithEmailAuthentication;
 
@@ -68,7 +67,7 @@ class User extends Authenticatable implements
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return false;
+        return $this->can('access panel');
     }
 
     public function getAppAuthenticationSecret(): ?string
