@@ -7,8 +7,10 @@ use Housetrevethan\FilamentAuth\Contracts\OAuthRoleProvisioner;
 use Housetrevethan\FilamentAuth\Enums\OAuthProviderNames;
 use Housetrevethan\FilamentAuth\Enums\OAuthRejectionReason;
 use Housetrevethan\FilamentAuth\Models\User as SystemUser;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Contracts\User;
+use Throwable;
 
 class MicrosoftLoginService
 {
@@ -17,21 +19,37 @@ class MicrosoftLoginService
 
     }
 
-    public static function validTenantId(User $systemUser): bool
+    /**
+     * Resolve the tenant claim to a rejection reason, or null when the tenant
+     * is permitted to authenticate.
+     */
+    public static function resolveTenantRejection(User $socialiteUser): ?OAuthRejectionReason
     {
-        $tenantId = $systemUser->tenant['id'] ?? null;
-        $userEmail = $systemUser->getEmail();
+        $tenantId = $socialiteUser->tenant['id'] ?? null;
+        $userEmail = $socialiteUser->getEmail();
 
-        // Must have a valid tenant id
-        if (!$tenantId) return false;
+        // Without a tenant id the identity cannot be attributed to an
+        // organization, so there is nothing to check it against.
+        if (!$tenantId) {
+            Log::warning("Rejected Microsoft login for $userEmail: the token carried no tenant id.");
 
-        if (in_array($tenantId, config('filament-auth.microsoft.allowed_tenant_ids'))) {
-            Log::info("Tenant ID confirmed for $userEmail.");
-            return true;
+            return OAuthRejectionReason::MissingTenant;
         }
-        return false;
+
+        if (!in_array($tenantId, config('filament-auth.microsoft.allowed_tenant_ids'))) {
+            Log::warning("Rejected Microsoft login for $userEmail: tenant $tenantId is not allowed.");
+
+            return OAuthRejectionReason::TenantNotAllowed;
+        }
+
+        Log::info("Tenant ID confirmed for $userEmail.");
+
+        return null;
     }
 
+    /**
+     * @throws Throwable
+     */
     public function getAndValidateSystemUser(User $socialiteUser): array
     {
         $oauthUserData = [
@@ -44,6 +62,19 @@ class MicrosoftLoginService
             'oauth-provider-name' => OAuthProviderNames::Microsoft->value,
         ];
 
+        // Resolving the identity reads the account and then writes to it, so
+        // the whole decision runs in one transaction. Without it a failure
+        // partway through could leave a half-provisioned account behind, and
+        // two concurrent callbacks for the same new identity could both pass
+        // the "does this user exist" check.
+        return DB::transaction(fn (): array => $this->resolveSystemUser($oauthUserData));
+    }
+
+    /**
+     * @return array{system-user: ?SystemUser, rejection-reason: ?OAuthRejectionReason}
+     */
+    private function resolveSystemUser(array $oauthUserData): array
+    {
         // Resolve the account by the provider's immutable identifier, never by
         // the email claim. Email addresses are mutable and can be reassigned by
         // a tenant administrator, so matching on them would let one identity
@@ -59,10 +90,9 @@ class MicrosoftLoginService
         $emailOwner = SystemUser::where('email', $oauthUserData['email'])->first();
 
         if ($emailOwner === null) {
-            return [
-                'system-user' => MicrosoftIdentityConcerns::createUserFromIdentity($oauthUserData),
-                'rejection-reason' => null
-            ];
+            return MicrosoftIdentityConcerns::accept(
+                MicrosoftIdentityConcerns::createUserFromIdentity($oauthUserData)
+            );
         }
 
         // The email is already taken by a different OAuth identity. Rebinding
@@ -72,13 +102,13 @@ class MicrosoftLoginService
                 "Rejected Microsoft login: {$oauthUserData['email']} is already bound to a different OAuth identity."
             );
 
-            return ['system-user' => null, 'rejection-reason' => OAuthRejectionReason::EmailConflict];
+            return MicrosoftIdentityConcerns::reject(OAuthRejectionReason::EmailConflict);
         }
 
         // The user has a local account. We return null here and reject the
         // login to avoid a database error.
         Log::info("User already has a local account: {$oauthUserData['email']}");
 
-        return ['system-user' => null, 'rejection-reason' => OAuthRejectionReason::LocalAccount];
+        return MicrosoftIdentityConcerns::reject(OAuthRejectionReason::LocalAccount);
     }
 }

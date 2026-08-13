@@ -27,34 +27,52 @@ class MicrosoftLoginController extends Controller
     public function store()
     {
         $socialiteUser = Socialite::driver(OAuthProviderNames::Microsoft->value)->user();
-        // If the user has no tenant ID or the tenant ID is not allowed, deny login
-        if (!$this->microsoftLoginService::validTenantId($socialiteUser)) {
-            return redirect(route(config('filament-auth.filament-routes.failed-login-redirect')));
+
+        // The tenant has to clear before the identity is worth resolving.
+        $tenantRejection = $this->microsoftLoginService->resolveTenantRejection($socialiteUser);
+
+        if ($tenantRejection !== null) {
+            return $this->rejectLogin($tenantRejection);
         }
 
         $userValidation = $this->microsoftLoginService->getAndValidateSystemUser($socialiteUser);
         $systemUser = $userValidation['system-user'];
-        $rejectionResponse = $userValidation['rejection-reason'];
 
-        if ($systemUser !== null) {
-            Auth::login($systemUser);
-            request()->session()->regenerateToken();
-            Notification::make()
-                ->title('Welcome from the House Trevethan Team!')
-                ->success()
-                ->body('Enjoy your new system and feel free to reach out if you have any questions!')
-                ->send();
-
-            return redirect(route(config('filament-auth.filament-routes.filament-dashboard-route')));
+        if ($systemUser === null) {
+            return $this->rejectLogin($userValidation['rejection-reason']);
         }
 
+        Auth::login($systemUser);
+        request()->session()->regenerateToken();
+        Notification::make()
+            ->title('Welcome from the House Trevethan Team!')
+            ->success()
+            ->body('Enjoy your new system and feel free to reach out if you have any questions!')
+            ->send();
+
+        return redirect(route(config('filament-auth.filament-routes.filament-dashboard-route')));
+    }
+
+    /**
+     * Tear down any half-established session and send the user back with an
+     * explanation. Tenant failures go to the dedicated failure route, every
+     * other refusal returns to the login screen.
+     */
+    private function rejectLogin(?OAuthRejectionReason $reason)
+    {
         Auth::logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();
 
-        $this->rejectionNotification($rejectionResponse)->send();
+        $this->rejectionNotification($reason)->send();
 
-        return redirect(route(config('filament-auth.filament-routes.filament-login-route')));
+        $route = match ($reason) {
+            OAuthRejectionReason::MissingTenant,
+            OAuthRejectionReason::TenantNotAllowed => config('filament-auth.filament-routes.failed-login-redirect'),
+            default => config('filament-auth.filament-routes.filament-login-route'),
+        };
+
+        return redirect(route($route));
     }
 
     private function rejectionNotification(?OAuthRejectionReason $reason): Notification
@@ -64,7 +82,10 @@ class MicrosoftLoginController extends Controller
                 ->title('Welcome Back! It looks like you already have an account.')
                 ->warning()
                 ->body('This email is already registered in the system. Please login with your password.'),
-            OAuthRejectionReason::EmailConflict, OAuthRejectionReason::TenantMismatch => Notification::make()
+            OAuthRejectionReason::EmailConflict,
+            OAuthRejectionReason::TenantMismatch,
+            OAuthRejectionReason::MissingTenant,
+            OAuthRejectionReason::TenantNotAllowed => Notification::make()
                 ->title('We could not sign you in.')
                 ->danger()
                 ->body('Your account could not be verified. Please contact your administrator for assistance.'),

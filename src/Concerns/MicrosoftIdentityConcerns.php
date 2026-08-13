@@ -10,6 +10,25 @@ use Illuminate\Support\Str;
 
 class MicrosoftIdentityConcerns
 {
+    /**
+     * Build the result for a login that resolved to a usable account.
+     *
+     * @return array{system-user: SystemUser, rejection-reason: null}
+     */
+    public static function accept(SystemUser $systemUser): array
+    {
+        return ['system-user' => $systemUser, 'rejection-reason' => null];
+    }
+
+    /**
+     * Build the result for a login that was refused.
+     *
+     * @return array{system-user: null, rejection-reason: OAuthRejectionReason}
+     */
+    public static function reject(OAuthRejectionReason $reason): array
+    {
+        return ['system-user' => null, 'rejection-reason' => $reason];
+    }
 
     public static function createUserFromIdentity(array $userData): SystemUser
     {
@@ -29,18 +48,14 @@ class MicrosoftIdentityConcerns
 
     public static function updateExistingIdentity(SystemUser $systemUser, array $oauthUserData): array
     {
-        // The identity is known but is arriving from a different tenant than
-        // the one it was provisioned under. Moving an account between tenants
-        // changes its role and trust level, so it must be done deliberately.
+        // Tenant ID changed since last login, reject user
         if ($systemUser->oauth_provider_id !== $oauthUserData['oauth-provider-id']) {
             Log::warning(
                 "Rejected Microsoft login for {$oauthUserData['email']}: tenant changed from "
                 . "$systemUser->oauth_provider_id to {$oauthUserData['oauth-provider-id']}."
             );
 
-            return [
-                'system-user' => null,
-                'rejection-reason' => OAuthRejectionReason::TenantMismatch];
+            return self::reject(OAuthRejectionReason::TenantMismatch);
         }
 
         Log::info("User has a previous login, updating profile for {$oauthUserData['email']}");
@@ -69,6 +84,6 @@ class MicrosoftIdentityConcerns
 
         $systemUser->update($attributes);
 
-        return ['system-user' => $systemUser, 'rejection-reason' => null];
+        return self::accept($systemUser);
     }
 }

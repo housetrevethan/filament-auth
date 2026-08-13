@@ -5,6 +5,19 @@ namespace Housetrevethan\FilamentAuth\Enums;
 enum OAuthRejectionReason: string
 {
     /**
+     * The provider returned no tenant id at all, so the identity cannot be
+     * attributed to an organisation and must not be trusted.
+     */
+    case MissingTenant = 'missing_tenant';
+
+    /**
+     * The identity presented a tenant that is not in the configured
+     * allowlist. The tenant is well formed, it simply is not permitted
+     * to authenticate against this application.
+     */
+    case TenantNotAllowed = 'tenant_not_allowed';
+
+    /**
      * The email address belongs to an account that was created locally
      * and has never been linked to an OAuth provider.
      */
