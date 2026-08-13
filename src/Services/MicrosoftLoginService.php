@@ -96,7 +96,7 @@ class MicrosoftLoginService
             // Authorization is the consuming application's responsibility — the
             // package only authenticates. Role/permission provisioning happens
             // once, right after the account is created.
-            $this->oauthRoleProvisioner->provisionRoles($newUser);
+            $this->oauthRoleProvisioner->provisionRoles($oauthUserData);
 
             return MicrosoftIdentityConcerns::accept($newUser);
         }
