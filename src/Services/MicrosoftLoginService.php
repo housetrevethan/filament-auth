@@ -91,9 +91,14 @@ class MicrosoftLoginService
 
         // Create a new user with the current identity being passed from Entra ID
         if ($emailOwner === null) {
-            return MicrosoftIdentityConcerns::accept(
-                MicrosoftIdentityConcerns::createUserFromIdentity($oauthUserData)
-            );
+            $newUser = MicrosoftIdentityConcerns::createUserFromIdentity($oauthUserData);
+
+            // Authorization is the consuming application's responsibility — the
+            // package only authenticates. Role/permission provisioning happens
+            // once, right after the account is created.
+            $this->oauthRoleProvisioner->provisionRoles($newUser);
+
+            return MicrosoftIdentityConcerns::accept($newUser);
         }
 
         // The email is already taken by a different OAuth identity. Rebinding

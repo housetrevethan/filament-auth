@@ -3,6 +3,8 @@
 namespace Housetrevethan\FilamentAuth;
 
 use Housetrevethan\FilamentAuth\Console\InstallCommand;
+use Housetrevethan\FilamentAuth\Contracts\OAuthRoleProvisioner;
+use Housetrevethan\FilamentAuth\Exceptions\OAuthRoleProvisionerNotBound;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -32,6 +34,24 @@ class FilamentAuthServiceProvider extends ServiceProvider
         $this->registerMigrations();
         $this->registerRoutes();
         $this->registerCommands();
+        $this->guardRoleProvisionerBinding();
+    }
+
+    /**
+     * Fall back to a resolver that throws a clear, actionable exception when
+     * the consuming application never bound its own OAuthRoleProvisioner.
+     * Runs in boot() — after every provider's register() has executed — so
+     * this correctly detects the app's binding regardless of provider order.
+     */
+    private function guardRoleProvisionerBinding(): void
+    {
+        if ($this->app->bound(OAuthRoleProvisioner::class)) {
+            return;
+        }
+
+        $this->app->bind(OAuthRoleProvisioner::class, function (): never {
+            throw OAuthRoleProvisionerNotBound::make();
+        });
     }
 
     private function registerPublishing(): void

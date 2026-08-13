@@ -43,11 +43,11 @@ class InstallCommand extends Command
     {
         $this->info('→ Checking migration state...');
 
-        $existingCreateMigration = $this->findExistingMigration('create_users_table');
+        $existingCreateMigration = $this->findExistingMigration();
         $now = now();
 
         if ($existingCreateMigration) {
-            $this->line("  Existing <comment>create_users_table</comment> migration detected (<comment>{$existingCreateMigration}</comment>).");
+            $this->line("  Existing <comment>create_users_table</comment> migration detected (<comment>$existingCreateMigration</comment>).");
             $this->line('  Publishing additive OAuth migration only...');
         } elseif (Schema::hasTable('users')) {
             $this->line('  Existing <comment>users</comment> table detected (no migration file found).');
@@ -55,7 +55,6 @@ class InstallCommand extends Command
         } else {
             $this->line('  No <comment>create_users_table</comment> migration found — publishing full users table migration...');
             $this->publishMigrationFile(
-                'create_users_table',
                 $now->format('Y_m_d_His') . '_create_users_table.php',
                 false
             );
@@ -77,30 +76,29 @@ class InstallCommand extends Command
         $this->newLine();
         $this->warn('  ⚠  Verify your users table migration includes these columns:');
         $this->line('     - avatar (text, nullable)');
-        $this->line('     - role (string, default: "core")');
         $this->line('     - app_authentication_secret (text, nullable)');
         $this->line('     - app_authentication_recovery_codes (text, nullable)');
         $this->line('     - has_email_authentication (boolean, default: false)');
         $this->line('     If any are missing, add them before running <comment>php artisan migrate</comment>.');
     }
 
-    private function publishMigrationFile(string $stub, string $destinationFilename, bool $isAuto): void
+    private function publishMigrationFile(string $destinationFilename, bool $isAuto): void
     {
         if (!$isAuto) {
-            $source = __DIR__ . "/../Database/Migrations/{$stub}.php";
+            $source = __DIR__ . "/../Database/Migrations/create_users_table.php";
         } else {
-            $source = __DIR__ . "/../Database/Migrations/auto/{$stub}.php";
+            $source = __DIR__ . "/../Database/Migrations/auto/create_users_table.php";
         }
 
-        $destination = database_path("migrations/{$destinationFilename}");
+        $destination = database_path("migrations/$destinationFilename");
         if (!file_exists($destination)) {
             copy($source, $destination);
         }
     }
 
-    private function findExistingMigration(string $name): ?string
+    private function findExistingMigration(): ?string
     {
-        foreach (glob(database_path("migrations/*_{$name}.php")) as $file) {
+        foreach (glob(database_path("migrations/*_create_users_table.php")) as $file) {
             return basename($file);
         }
 
