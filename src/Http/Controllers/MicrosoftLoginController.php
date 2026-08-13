@@ -9,6 +9,7 @@ use Housetrevethan\FilamentAuth\Services\MicrosoftLoginService;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
+use Throwable;
 
 class MicrosoftLoginController extends Controller
 {
@@ -24,12 +25,16 @@ class MicrosoftLoginController extends Controller
         return Socialite::driver(OAuthProviderNames::Microsoft->value)->redirect();
     }
 
+    /**
+     * @throws Throwable
+     */
     public function store()
     {
         $socialiteUser = Socialite::driver(OAuthProviderNames::Microsoft->value)->user();
 
         // The tenant has to clear before the identity is worth resolving.
-        $tenantRejection = $this->microsoftLoginService->resolveTenantRejection($socialiteUser);
+        // First rejection path
+        $tenantRejection = $this->microsoftLoginService->resolveTenant($socialiteUser);
 
         if ($tenantRejection !== null) {
             return $this->rejectLogin($tenantRejection);
@@ -38,6 +43,8 @@ class MicrosoftLoginController extends Controller
         $userValidation = $this->microsoftLoginService->getAndValidateSystemUser($socialiteUser);
         $systemUser = $userValidation['system-user'];
 
+        // Second rejection path. If the user can't be validated, get the rejection reason
+        // from the array and reject login
         if ($systemUser === null) {
             return $this->rejectLogin($userValidation['rejection-reason']);
         }
@@ -47,7 +54,7 @@ class MicrosoftLoginController extends Controller
         Notification::make()
             ->title('Welcome from the House Trevethan Team!')
             ->success()
-            ->body('Enjoy your new system and feel free to reach out if you have any questions!')
+            ->body('Feel free to reach out if you have any questions!')
             ->send();
 
         return redirect(route(config('filament-auth.filament-routes.filament-dashboard-route')));

@@ -19,10 +19,6 @@ class FilamentAuthPlugin implements Plugin
 
     protected bool $microsoftOAuth = false;
 
-    protected bool $registerUserResource = true;
-
-    protected bool $registerEditProfile = true;
-
     public static function make(): static
     {
         return app(static::class);

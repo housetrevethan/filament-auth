@@ -23,7 +23,7 @@ class MicrosoftLoginService
      * Resolve the tenant claim to a rejection reason, or null when the tenant
      * is permitted to authenticate.
      */
-    public static function resolveTenantRejection(User $socialiteUser): ?OAuthRejectionReason
+    public static function resolveTenant(User $socialiteUser): ?OAuthRejectionReason
     {
         $tenantId = $socialiteUser->tenant['id'] ?? null;
         $userEmail = $socialiteUser->getEmail();
@@ -89,6 +89,7 @@ class MicrosoftLoginService
 
         $emailOwner = SystemUser::where('email', $oauthUserData['email'])->first();
 
+        // Create a new user with the current identity being passed from Entra ID
         if ($emailOwner === null) {
             return MicrosoftIdentityConcerns::accept(
                 MicrosoftIdentityConcerns::createUserFromIdentity($oauthUserData)
