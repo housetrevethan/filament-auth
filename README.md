@@ -2,12 +2,12 @@
 
 Base authentication package for House Trevethan Filament applications.
 
-This package provides:
+Provides:
 
-- Microsoft OAuth sign-in flow for Filament login pages
-- Role-aware user provisioning (Core or Client based on tenant)
-- Filament multi-factor authentication (app and/or email)
-- Optional bundled User resource and profile page integration
+- Microsoft OAuth sign-in on Filament login pages
+- Tenant-aware user provisioning for the House Trevethan tenant and allowed tenants
+- Filament multi-factor authentication (authenticator app and/or email)
+- A role/permission provisioning hook (`OAuthRoleProvisioner`) you implement in your app
 
 ## Requirements
 
@@ -15,17 +15,16 @@ This package provides:
 - Laravel 12+
 - Filament 5+
 
-## Install As A Private GitHub Package (SSH)
+## Installation
 
-In your consuming Laravel app, add this package repository to `composer.json`:
+### 1) Add the repository
+
+In the consuming app's `composer.json`:
 
 ```json
 {
   "repositories": [
-    {
-      "type": "vcs",
-      "url": "git@github.com:HouseTrevethanProjects/filament-auth.git"
-    }
+    { "type": "vcs", "url": "https://github.com/housetrevethan/filament-auth.git" }
   ],
   "require": {
     "housetrevethan/filament-auth": "^1.0"
@@ -33,106 +32,80 @@ In your consuming Laravel app, add this package repository to `composer.json`:
 }
 ```
 
-Then install:
+Then require it:
 
 ```bash
-composer update housetrevethan/filament-auth
+composer require housetrevethan/filament-auth
 ```
 
-Notes:
-
-- Your machine/CI runner must have SSH access to the private repo.
-- Typical CI setup is an SSH deploy key + `known_hosts` entry for GitHub.
-
-## Package Installation In Your App
-
-Run the install command:
+### 2) Run the install command
 
 ```bash
 php artisan filament-auth:install
 ```
 
-This command:
+This:
 
-- Publishes package config to `config/filament-auth.php`
-- Publishes migrations (full users table when absent, additive OAuth migration otherwise)
-- Prints the expected User model and Filament panel plugin setup
+- Publishes config to `config/filament-auth.php`
+- **Generates** an `add_oauth_columns_to_users` migration into `database/migrations`
+- Prints the users-table columns you must add, plus the User model and panel setup
 
-Run migrations after publishing:
+> The package does **not** publish a users-table migration and does **not** autoload the
+> OAuth migration from the vendor directory — it is generated once into your app so
+> Laravel never runs it from two places.
+
+### 3) Add the required users-table columns
+
+The package needs these columns on your existing `create_users_table` migration. Add any
+that are missing:
+
+```php
+$table->text('avatar')->nullable();
+$table->text('app_authentication_secret')->nullable();
+$table->text('app_authentication_recovery_codes')->nullable();
+$table->boolean('has_email_authentication')->default(false);
+$table->timestamp('email_verified_at')->nullable();
+```
+
+The generated migration adds the OAuth columns (`oauth_provider_name`, `oauth_provider_id`,
+`oauth_provider_user_id`) and a unique identity index on top of that table.
+
+### 4) Migrate
 
 ```bash
 php artisan migrate
 ```
 
-## Publish Config Manually (Optional)
+## Configuration
 
-If you want to publish config yourself:
-
-```bash
-php artisan vendor:publish --tag=filament-auth-config
-```
-
-Migration publish tags:
-
-```bash
-# Full users table migration (publish-only)
-php artisan vendor:publish --tag=filament-auth-migrations-create
-
-# Additive OAuth columns migration
-php artisan vendor:publish --tag=filament-auth-migrations
-```
-
-## Environment Variables
-
-Add these values to your app's `.env`:
+### Environment variables
 
 ```dotenv
-HOUSE_TREVETHAN_TENANT_ID=<your-house-trevethan-tenant-uuid>
+HOUSE_TREVETHAN_TENANT_ID=<house-trevethan-tenant-uuid>
 MICROSOFT_ALLOWED_TENANT_IDS=<client-tenant-uuid-1>,<client-tenant-uuid-2>
 MICROSOFT_CLIENT_ID=<azure-app-client-id>
 MICROSOFT_CLIENT_SECRET=<azure-app-client-secret>
 MICROSOFT_REDIRECT_URI=${APP_URL}/auth/microsoft/callback
 
-FILAMENT_DASHBOARD_ROUTE=<your-filament-dashboard-route-name>
-FILAMENT_LOGIN_ROUTE=<your-filament-login-route-name>
-FAILED_LOGIN_REDIRECT=<route-name-for-denied-logins>
+FILAMENT_DASHBOARD_ROUTE=<dashboard-route-name>   # redirect on successful login
+FILAMENT_LOGIN_ROUTE=<login-route-name>           # redirect on local-account conflict
+FAILED_LOGIN_REDIRECT=<denied-route-name>         # redirect on denied tenant
+
+# Optional MFA overrides (defaults shown)
+MFA_APP_ENABLED=true
+MFA_EMAIL_ENABLED=true
+MFA_RECOVERY_CODE_COUNT=8
+MFA_CODE_EXPIRY_MINUTES=5
 ```
 
-Important:
+`FILAMENT_DASHBOARD_ROUTE`, `FILAMENT_LOGIN_ROUTE`, and `FAILED_LOGIN_REDIRECT` must be valid
+named routes — the OAuth controller redirects to them after success, conflict, and denial.
 
-- Use `HOUSE_TREVETHAN_TENANT_ID` for the House Trevethan tenant UUID.
-- `FILAMENT_DASHBOARD_ROUTE`, `FILAMENT_LOGIN_ROUTE`, and `FAILED_LOGIN_REDIRECT` must be valid named routes in your
-  app. The OAuth controller uses these to redirect after login success, local-account conflict, and denied tenant,
-  respectively.
+### services.php (Microsoft)
 
-## Microsoft Socialite Provider
-
-Install the Microsoft Socialite provider:
-
-```bash
-composer require socialiteproviders/microsoft
-```
-
-Register the driver in your `AppServiceProvider`:
-
-```php
-use Illuminate\Support\Facades\Event;
-use SocialiteProviders\Manager\SocialiteWasCalled;
-use SocialiteProviders\Microsoft\Provider;
-
-public function boot(): void
-{
-    Event::listen(function (SocialiteWasCalled $event) {
-        $event->extendSocialite('microsoft', Provider::class);
-    });
-}
-```
-
-## services.php Setup (Microsoft OAuth)
-
-Ensure your consuming app has a Microsoft Socialite provider config in `config/services.php` with **only** the three
-client-specific values. The package automatically sets `tenant`, `include_tenant_info`, `include_avatar`, and
-`include_avatar_size` at boot — do not override them:
+Add **only** the three client-specific values. The package sets `tenant`,
+`include_tenant_info`, `include_avatar`, and `include_avatar_size` at boot — do not override
+them:
 
 ```php
 'microsoft' => [
@@ -142,27 +115,47 @@ client-specific values. The package automatically sets `tenant`, `include_tenant
 ],
 ```
 
-## Basic Usage
+### Publish config manually (optional)
 
-### 1) Register the plugin in your Filament panel
+```bash
+php artisan vendor:publish --tag=filament-auth-config
+```
 
-In your panel provider:
+## Usage
+
+### 1) Install the Microsoft Socialite provider
+
+```bash
+composer require socialiteproviders/microsoft
+```
+
+Register the driver in `AppServiceProvider::boot()`:
+
+```php
+use Illuminate\Support\Facades\Event;
+use SocialiteProviders\Manager\SocialiteWasCalled;
+use SocialiteProviders\Microsoft\Provider;
+
+Event::listen(function (SocialiteWasCalled $event) {
+    $event->extendSocialite('microsoft', Provider::class);
+});
+```
+
+### 2) Register the plugin in your panel provider
 
 ```php
 use Housetrevethan\FilamentAuth\FilamentAuthPlugin;
 
 ->plugins([
     FilamentAuthPlugin::make()
-        ->mfa(app: true, email: true)
-        ->microsoftOAuth()
-        ->userResource()
-        ->editProfile(),
+        ->mfa(app: true, email: true)   // toggle authenticator-app / email MFA
+        ->microsoftOAuth(),             // render the "Sign in with Microsoft" button
 ])
 ```
 
-### 2) Extend the package User model
+### 3) Extend the package User model
 
-In your app `app/Models/User.php`:
+`app/Models/User.php`:
 
 ```php
 <?php
@@ -171,51 +164,99 @@ namespace App\Models;
 
 class User extends \Housetrevethan\FilamentAuth\Models\User
 {
-    // Add app-specific relationships or methods here.
-    // Override canAccessPanel() if your role access rules differ.
+    // App-specific relationships/methods only.
+    // Override canAccessPanel() here — this package does not handle roles/permissions.
 }
 ```
 
-### 3) OAuth routes provided by this package
+The base model provides fillable fields, casts, MFA methods, the avatar helper, and the
+Filament interface implementations.
 
-The package registers:
+### 4) Bind an `OAuthRoleProvisioner` (required)
 
-- `GET /auth/microsoft/redirect` (route name: `auth.microsoft.redirect`)
-- `GET /auth/microsoft/callback` (route name: `auth.microsoft.callback`)
+> **Required.** This package does not handle roles or permissions. It resolves
+> `Housetrevethan\FilamentAuth\Contracts\OAuthRoleProvisioner` from the container and calls
+> `provisionRoles()` immediately after a new OAuth user is created. If you don't bind an
+> implementation, the first Microsoft sign-in that creates a user throws
+> `OAuthRoleProvisionerNotBound`.
 
-When `->microsoftOAuth()` is enabled, a "Sign in with Microsoft" action is rendered on the Filament login page and
-points to the redirect route above.
+Create an implementation:
 
-## Configuration Reference
+```php
+<?php
 
-Published `config/filament-auth.php` includes:
+namespace App\Auth;
 
-- `microsoft.house_trevethan_tenant_id`
-- `microsoft.allowed_tenant_ids`
-- `mfa.app_enabled`
-- `mfa.email_enabled`
-- `mfa.recovery_code_count`
-- `mfa.code_expiry_minutes`
+use Housetrevethan\FilamentAuth\Contracts\OAuthRoleProvisioner;
 
-You can tune MFA behavior either through plugin method arguments (`->mfa(...)`) and/or config values.
+class RoleProvisioner implements OAuthRoleProvisioner
+{
+    /**
+     * @param array{
+     *     email: string,
+     *     name: string,
+     *     avatar: ?string,
+     *     oauth-user-id: string,
+     *     oauth-provider-id: ?string,
+     *     oauth-provider-token: string,
+     *     oauth-provider-name: string,
+     * } $oauthUserData
+     */
+    public function provisionRoles(array $oauthUserData): void
+    {
+        // Assign roles/permissions/initial state for the newly created user,
+        // e.g. via spatie/laravel-permission or your own logic.
+    }
+}
+```
 
-## User Provisioning Behavior (Microsoft Login)
+Bind it in `AppServiceProvider::register()`:
 
-- Tenant must match `HOUSE_TREVETHAN_TENANT_ID` or be present in `MICROSOFT_ALLOWED_TENANT_IDS`
-- New users are created with role:
-    - `core` when from the House Trevethan tenant
-    - `client` when from an allowed client tenant
-- Existing OAuth users are updated on login
-- Existing local (non-OAuth) users with the same email are not converted to OAuth accounts
+```php
+use App\Auth\RoleProvisioner;
+use Housetrevethan\FilamentAuth\Contracts\OAuthRoleProvisioner;
+
+$this->app->bind(OAuthRoleProvisioner::class, RoleProvisioner::class);
+```
+
+`provisionRoles()` runs **once**, right after the account is created — not on subsequent
+logins.
+
+### OAuth routes
+
+The package registers (under the `web` middleware):
+
+- `GET /auth/microsoft/redirect` → `auth.microsoft.redirect`
+- `GET /auth/microsoft/callback` → `auth.microsoft.callback`
+
+When `->microsoftOAuth()` is enabled, the "Sign in with Microsoft" button on the Filament
+login page points at the redirect route.
+
+## Provisioning behavior (Microsoft login)
+
+- Tenant must equal `HOUSE_TREVETHAN_TENANT_ID` or appear in `MICROSOFT_ALLOWED_TENANT_IDS`.
+- New users from an allowed tenant are provisioned on first login.
+- Existing OAuth users are updated on login.
+- Existing local (non-OAuth) users with the same email are **not** converted to OAuth.
+
+## Config reference
+
+`config/filament-auth.php`:
+
+- `microsoft.house_trevethan_tenant_id`, `microsoft.allowed_tenant_ids`
+- `mfa.app_enabled`, `mfa.email_enabled`, `mfa.recovery_code_count`, `mfa.code_expiry_minutes`
+
+MFA can be tuned via `->mfa(...)` arguments and/or these config values.
 
 ## Troubleshooting
 
-- "Tenant not allowed": verify `HOUSE_TREVETHAN_TENANT_ID` and `MICROSOFT_ALLOWED_TENANT_IDS`
-- OAuth redirect mismatch: confirm Azure app redirect URI equals `MICROSOFT_REDIRECT_URI`
-- No Microsoft login button: ensure `->microsoftOAuth()` is enabled in your panel plugin chain
-- Route not found: clear caches and reload routes:
+- **`OAuthRoleProvisionerNotBound`** — bind an `OAuthRoleProvisioner` implementation (see Usage step 4).
+- **"Tenant not allowed"** — verify `HOUSE_TREVETHAN_TENANT_ID` / `MICROSOFT_ALLOWED_TENANT_IDS`.
+- **OAuth redirect mismatch** — the Azure app redirect URI must equal `MICROSOFT_REDIRECT_URI`.
+- **No Microsoft button** — ensure `->microsoftOAuth()` is in the panel plugin chain.
+- **Route not found** — clear caches and reload routes:
 
 ```bash
 php artisan optimize:clear
-php artisan route:list | grep microsoft
+php artisan route:list | Select-String microsoft
 ```

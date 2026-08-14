@@ -31,7 +31,6 @@ class FilamentAuthServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerPublishing();
-        $this->registerMigrations();
         $this->registerRoutes();
         $this->registerCommands();
         $this->guardRoleProvisionerBinding();
@@ -65,26 +64,10 @@ class FilamentAuthServiceProvider extends ServiceProvider
             __DIR__ . '/Config/filament-auth.php' => config_path('filament-auth.php'),
         ], 'filament-auth-config');
 
-        // Migrations are published with dynamic timestamps via the 'install' command.
-        // These 'publish' tags remain for manual/advanced use only.
-        $this->publishes([
-            __DIR__ . '/Database/Migrations/create_users_table.php'
-            => database_path('migrations/' . now()->format('Y_m_d_His') . '_create_users_table.php'),
-        ], 'filament-auth-migrations-create');
-
-        $this->publishes([
-            __DIR__ . '/Database/Migrations/auto/add_oauth_columns_to_users.php'
-            => database_path('migrations/' . now()->addSecond()->format('Y_m_d_His') . '_add_oauth_columns_to_users.php'),
-        ], 'filament-auth-migrations');
-    }
-
-    private function registerMigrations(): void
-    {
-        // Only the additive OAuth migration is autoloaded.
-        // The create_users_table migration is publish-only (via install command).
-        $this->loadMigrationsFrom(
-            __DIR__ . '/Database/Migrations/auto'
-        );
+        // The OAuth columns migration is generated into the consuming app by the
+        // 'filament-auth:install' command. It is intentionally NOT autoloaded from
+        // this package (no loadMigrationsFrom) — doing so caused the migration to
+        // run from both the vendor dir and the published copy.
     }
 
     private function registerRoutes(): void

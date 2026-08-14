@@ -1,4 +1,5 @@
 <?php
+declare(strict_types = 1);
 
 namespace Housetrevethan\FilamentAuth\Models;
 
@@ -54,6 +55,9 @@ class User extends Authenticatable implements
         'app_authentication_secret',
     ];
 
+    /**
+     * @return array{email_verified_at: string, password: string, app_authentication_secret: string, app_authentication_recovery_codes: string, has_email_authentication: string}
+     */
     protected function casts(): array
     {
         return [
@@ -65,38 +69,62 @@ class User extends Authenticatable implements
         ];
     }
 
+    /**
+     * @param Panel $panel
+     * @return bool
+     */
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->can('access panel');
     }
 
+    /**
+     * @return string|null
+     */
     public function getAppAuthenticationSecret(): ?string
     {
         return $this->app_authentication_secret;
     }
 
+    /**
+     * @param string|null $secret
+     * @return void
+     */
     public function saveAppAuthenticationSecret(?string $secret): void
     {
         $this->app_authentication_secret = $secret;
         $this->save();
     }
 
+    /**
+     * @return string
+     */
     public function getAppAuthenticationHolderName(): string
     {
         return $this->email;
     }
 
+    /**
+     * @return array|string[]|null
+     */
     public function getAppAuthenticationRecoveryCodes(): ?array
     {
         return $this->app_authentication_recovery_codes;
     }
 
+    /**
+     * @param array|null $codes
+     * @return void
+     */
     public function saveAppAuthenticationRecoveryCodes(?array $codes): void
     {
         $this->app_authentication_recovery_codes = $codes;
         $this->save();
     }
 
+    /**
+     * @return string|null
+     */
     public function getFilamentAvatarUrl(): ?string
     {
         if (blank($this->avatar)) {
@@ -110,6 +138,9 @@ class User extends Authenticatable implements
         return Storage::disk('public')->url($this->avatar);
     }
 
+    /**
+     * @return bool
+     */
     public function hasOAuthProvider(): bool
     {
         return $this->oauth_provider_id !== null && $this->oauth_provider_name !== null;

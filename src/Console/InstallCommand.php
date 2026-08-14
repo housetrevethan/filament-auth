@@ -4,7 +4,6 @@ declare(strict_types = 1);
 namespace Housetrevethan\FilamentAuth\Console;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Schema;
 
 class InstallCommand extends Command
 {
@@ -18,7 +17,8 @@ class InstallCommand extends Command
         $this->newLine();
 
         $this->publishConfig();
-        $this->publishMigrations();
+        $this->printUsersTableChecklist();
+        $this->generateOAuthMigration();
         $this->printModelChecklist();
         $this->printPanelChecklist();
 
@@ -40,66 +40,44 @@ class InstallCommand extends Command
         $this->line('  Config published to <comment>config/filament-auth.php</comment>');
     }
 
-    private function publishMigrations(): void
+    private function printUsersTableChecklist(): void
     {
-        $this->info('→ Checking migration state...');
-
-        $existingCreateMigration = $this->findExistingMigration();
-        $now = now();
-
-        if ($existingCreateMigration) {
-            $this->line("  Existing <comment>create_users_table</comment> migration detected (<comment>$existingCreateMigration</comment>).");
-            $this->line('  Publishing additive OAuth migration only...');
-        } elseif (Schema::hasTable('users')) {
-            $this->line('  Existing <comment>users</comment> table detected (no migration file found).');
-            $this->line('  Publishing additive OAuth migration only...');
-        } else {
-            $this->line('  No <comment>create_users_table</comment> migration found — publishing full users table migration...');
-            $this->publishMigrationFile(
-                $now->format('Y_m_d_His') . '_create_users_table.php',
-                false
-            );
-            // Ensure OAuth migration runs after create by bumping the timestamp 1 second
-            $now->addSecond();
-        }
-
-//        if (! $this->findExistingMigration('add_oauth_columns_to_users')) {
-//            $this->publishMigrationFile(
-//                'add_oauth_columns_to_users',
-//                $now->format('Y_m_d_His') . '_add_oauth_columns_to_users.php',
-//                true
-//            );
-//            $this->line('  Migration published: <comment>add_oauth_columns_to_users</comment>');
-//        } else {
-//            $this->line('  OAuth migration already exists, skipping.');
-//        }
-
         $this->newLine();
-        $this->warn('  ⚠  Verify your users table migration includes these columns:');
+        $this->info('→ Ensure your users table migration includes these columns:');
         $this->line('     - avatar (text, nullable)');
         $this->line('     - app_authentication_secret (text, nullable)');
         $this->line('     - app_authentication_recovery_codes (text, nullable)');
         $this->line('     - has_email_authentication (boolean, default: false)');
-        $this->line('     If any are missing, add them before running <comment>php artisan migrate</comment>.');
+        $this->newLine();
+        $this->line('  Add any missing columns to your <comment>create_users_table</comment> migration');
+        $this->line('  before running <comment>php artisan migrate</comment>.');
     }
 
-    private function publishMigrationFile(string $destinationFilename, bool $isAuto): void
+    private function generateOAuthMigration(): void
     {
-        if (!$isAuto) {
-            $source = __DIR__ . "/../Database/Migrations/create_users_table.php";
-        } else {
-            $source = __DIR__ . "/../Database/Migrations/auto/create_users_table.php";
+        $this->newLine();
+        $this->info('→ Generating OAuth columns migration...');
+
+        if ($this->findExistingMigration('add_oauth_columns_to_users')) {
+            $this->line('  OAuth migration already exists, skipping.');
+
+            return;
         }
 
-        $destination = database_path("migrations/$destinationFilename");
-        if (!file_exists($destination)) {
-            copy($source, $destination);
-        }
+        $filename = now()->format('Y_m_d_His') . '_add_oauth_columns_to_users.php';
+        $destination = database_path("migrations/$filename");
+
+        copy(
+            __DIR__ . '/../Database/Stubs/add_oauth_columns_to_users.stub',
+            $destination
+        );
+
+        $this->line("  Migration generated: <comment>database/migrations/$filename</comment>");
     }
 
-    private function findExistingMigration(): ?string
+    private function findExistingMigration(string $name): ?string
     {
-        foreach (glob(database_path("migrations/*_create_users_table.php")) as $file) {
+        foreach (glob(database_path("migrations/*_$name.php")) as $file) {
             return basename($file);
         }
 

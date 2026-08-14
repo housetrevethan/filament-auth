@@ -6,11 +6,9 @@ return [
     |--------------------------------------------------------------------------
     | Microsoft OAuth
     |--------------------------------------------------------------------------
-    | our_tenant_id  — House Trevethan's Entra tenant. Users from this tenant
-    |                  are provisioned with the Core role.
-    | allowed_tenant_ids — Client tenant UUIDs. Users from these tenants are
-    |                      provisioned with the Client role. Add via .env as a
-    |                      comma-separated list.
+    | house_trevethan_tenant_id — House Trevethan's Entra tenant.
+    | allowed_tenant_ids — Additional tenant UUIDs permitted to sign in. Add via
+    |                      .env as a comma-separated list.
     */
     'microsoft' => [
         'house_trevethan_tenant_id' => env('HOUSE_TREVETHAN_TENANT_ID', ''),
