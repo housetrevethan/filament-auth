@@ -20,10 +20,10 @@ class MicrosoftLoginController extends Controller
     {
     }
 
-    /*
-     *
+    /**
+     * Redirect the user to Microsoft to begin the OAuth flow.
      */
-    public function create()
+    public function create(): RedirectResponse
     {
         return Socialite::driver(OAuthProviderNames::Microsoft->value)->redirect();
     }
@@ -78,7 +78,8 @@ class MicrosoftLoginController extends Controller
 
         $route = match ($reason) {
             OAuthRejectionReason::MissingTenant,
-            OAuthRejectionReason::TenantNotAllowed => config('filament-auth.filament-routes.failed-login-redirect'),
+            OAuthRejectionReason::TenantNotAllowed,
+            OAuthRejectionReason::TenantMismatch => config('filament-auth.filament-routes.failed-login-redirect'),
             default => config('filament-auth.filament-routes.filament-login-route'),
         };
 

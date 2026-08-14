@@ -172,6 +172,11 @@ class User extends \Housetrevethan\FilamentAuth\Models\User
 The base model provides fillable fields, casts, MFA methods, the avatar helper, and the
 Filament interface implementations.
 
+> **Panel access.** The base `canAccessPanel()` returns `$this->can('access panel')`, so
+> **every login is denied until your app defines that ability** (a Gate or a permission via
+> e.g. spatie/laravel-permission). Override `canAccessPanel()` in your model if your access
+> rules differ.
+
 ### 4) Bind an `OAuthRoleProvisioner` (required)
 
 > **Required.** This package does not handle roles or permissions. It resolves
@@ -235,6 +240,7 @@ login page points at the redirect route.
 ## Provisioning behavior (Microsoft login)
 
 - Tenant must equal `HOUSE_TREVETHAN_TENANT_ID` or appear in `MICROSOFT_ALLOWED_TENANT_IDS`.
+  The House Trevethan tenant is always permitted without being added to the allowlist.
 - New users from an allowed tenant are provisioned on first login.
 - Existing OAuth users are updated on login.
 - Existing local (non-OAuth) users with the same email are **not** converted to OAuth.
@@ -250,6 +256,7 @@ MFA can be tuned via `->mfa(...)` arguments and/or these config values.
 
 ## Troubleshooting
 
+- **Signed in but "403 / cannot access panel"** — define the `access panel` ability, or override `canAccessPanel()` (see Usage step 3).
 - **`OAuthRoleProvisionerNotBound`** — bind an `OAuthRoleProvisioner` implementation (see Usage step 4).
 - **"Tenant not allowed"** — verify `HOUSE_TREVETHAN_TENANT_ID` / `MICROSOFT_ALLOWED_TENANT_IDS`.
 - **OAuth redirect mismatch** — the Azure app redirect URI must equal `MICROSOFT_REDIRECT_URI`.

@@ -25,4 +25,5 @@ class ResponseService
     public static function reject(OAuthRejectionReason $reason): array
     {
         return ['system-user' => null, 'rejection-reason' => $reason];
-    }}
+    }
+}

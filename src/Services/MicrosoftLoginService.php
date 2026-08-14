@@ -25,7 +25,7 @@ class MicrosoftLoginService
      * Resolve the tenant claim to a rejection reason, or null when the tenant
      * is permitted to authenticate.
      */
-    public static function resolveTenant(User $socialiteUser): ?OAuthRejectionReason
+    public function resolveTenant(User $socialiteUser): ?OAuthRejectionReason
     {
         $tenantId = $socialiteUser->tenant['id'] ?? null;
         $userEmail = $socialiteUser->getEmail();
@@ -38,7 +38,14 @@ class MicrosoftLoginService
             return OAuthRejectionReason::MissingTenant;
         }
 
-        if (!in_array($tenantId, config('filament-auth.microsoft.allowed_tenant_ids'))) {
+        // The House Trevethan tenant is always permitted; every other tenant
+        // must be present in the configured allowlist.
+        $allowedTenantIds = array_filter(array_merge(
+            [config('filament-auth.microsoft.house_trevethan_tenant_id')],
+            config('filament-auth.microsoft.allowed_tenant_ids', [])
+        ));
+
+        if (!in_array($tenantId, $allowedTenantIds, true)) {
             Log::warning("Rejected Microsoft login for $userEmail: tenant $tenantId is not allowed.");
 
             return OAuthRejectionReason::TenantNotAllowed;

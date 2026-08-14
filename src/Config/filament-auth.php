@@ -6,9 +6,10 @@ return [
     |--------------------------------------------------------------------------
     | Microsoft OAuth
     |--------------------------------------------------------------------------
-    | house_trevethan_tenant_id — House Trevethan's Entra tenant.
-    | allowed_tenant_ids — Additional tenant UUIDs permitted to sign in. Add via
-    |                      .env as a comma-separated list.
+    | house_trevethan_tenant_id — House Trevethan's Entra tenant. Always permitted
+    |                  to sign in.
+    | allowed_tenant_ids — Additional tenant UUIDs permitted to sign in, on top of
+    |                  house_trevethan_tenant_id. Add via .env as a comma-separated list.
     */
     'microsoft' => [
         'house_trevethan_tenant_id' => env('HOUSE_TREVETHAN_TENANT_ID', ''),
