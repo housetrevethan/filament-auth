@@ -1,4 +1,5 @@
 <?php
+declare(strict_types = 1);
 
 use Housetrevethan\FilamentAuth\Http\Controllers\MicrosoftLoginController;
 use Illuminate\Support\Facades\Route;

@@ -1,4 +1,5 @@
 <?php
+declare(strict_types = 1);
 
 namespace Housetrevethan\FilamentAuth\Http\Controllers;
 
@@ -6,7 +7,9 @@ use Filament\Notifications\Notification;
 use Housetrevethan\FilamentAuth\Enums\OAuthProviderNames;
 use Housetrevethan\FilamentAuth\Enums\OAuthRejectionReason;
 use Housetrevethan\FilamentAuth\Services\MicrosoftLoginService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controller;
+use Illuminate\Routing\Redirector;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
 use Throwable;
@@ -28,7 +31,7 @@ class MicrosoftLoginController extends Controller
     /**
      * @throws Throwable
      */
-    public function store()
+    public function store(): RedirectResponse|Redirector
     {
         $socialiteUser = Socialite::driver(OAuthProviderNames::Microsoft->value)->user();
 
@@ -65,7 +68,7 @@ class MicrosoftLoginController extends Controller
      * explanation. Tenant failures go to the dedicated failure route, every
      * other refusal returns to the login screen.
      */
-    private function rejectLogin(?OAuthRejectionReason $reason)
+    private function rejectLogin(?OAuthRejectionReason $reason): RedirectResponse|Redirector
     {
         Auth::logout();
         request()->session()->invalidate();

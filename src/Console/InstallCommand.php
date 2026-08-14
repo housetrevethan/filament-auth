@@ -1,4 +1,5 @@
 <?php
+declare(strict_types = 1);
 
 namespace Housetrevethan\FilamentAuth\Console;
 
@@ -133,8 +134,6 @@ class InstallCommand extends Command
         $this->line('  <comment>    FilamentAuthPlugin::make()</comment>');
         $this->line('  <comment>        ->mfa(app: true, email: true)</comment>');
         $this->line('  <comment>        ->microsoftOAuth()</comment>');
-        $this->line('  <comment>        ->userResource()</comment>');
-        $this->line('  <comment>        ->editProfile(),</comment>');
         $this->line('  <comment>])</comment>');
         $this->newLine();
         $this->info('→ Add to your .env:');

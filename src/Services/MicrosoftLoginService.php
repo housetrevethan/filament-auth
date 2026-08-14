@@ -1,8 +1,10 @@
 <?php
+declare(strict_types = 1);
 
 namespace Housetrevethan\FilamentAuth\Services;
 
-use Housetrevethan\FilamentAuth\Concerns\MicrosoftIdentityConcerns;
+use Housetrevethan\FilamentAuth\Actions\CreateNewOAuthUser;
+use Housetrevethan\FilamentAuth\Actions\UpdateExistingOAuthUser;
 use Housetrevethan\FilamentAuth\Contracts\OAuthRoleProvisioner;
 use Housetrevethan\FilamentAuth\Enums\OAuthProviderNames;
 use Housetrevethan\FilamentAuth\Enums\OAuthRejectionReason;
@@ -84,21 +86,21 @@ class MicrosoftLoginService
             ->first();
 
         if ($systemUser !== null) {
-            return MicrosoftIdentityConcerns::updateExistingIdentity($systemUser, $oauthUserData);
+            return UpdateExistingOAuthUser::execute($systemUser, $oauthUserData);
         }
 
         $emailOwner = SystemUser::where('email', $oauthUserData['email'])->first();
 
         // Create a new user with the current identity being passed from Entra ID
         if ($emailOwner === null) {
-            $newUser = MicrosoftIdentityConcerns::createUserFromIdentity($oauthUserData);
+            $newUser = CreateNewOAuthUser::execute($oauthUserData);
 
             // Authorization is the consuming application's responsibility — the
             // package only authenticates. Role/permission provisioning happens
             // once, right after the account is created.
             $this->oauthRoleProvisioner->provisionRoles($oauthUserData);
 
-            return MicrosoftIdentityConcerns::accept($newUser);
+            return ResponseService::accept($newUser);
         }
 
         // The email is already taken by a different OAuth identity. Rebinding
@@ -108,13 +110,13 @@ class MicrosoftLoginService
                 "Rejected Microsoft login: {$oauthUserData['email']} is already bound to a different OAuth identity."
             );
 
-            return MicrosoftIdentityConcerns::reject(OAuthRejectionReason::EmailConflict);
+            return ResponseService::reject(OAuthRejectionReason::EmailConflict);
         }
 
         // The user has a local account. We return null here and reject the
         // login to avoid a database error.
         Log::info("User already has a local account: {$oauthUserData['email']}");
 
-        return MicrosoftIdentityConcerns::reject(OAuthRejectionReason::LocalAccount);
+        return ResponseService::reject(OAuthRejectionReason::LocalAccount);
     }
 }
